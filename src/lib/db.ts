@@ -1,5 +1,10 @@
 import postgres from 'postgres'
 
-const connectionString = process.env.DATABASE_URL!
-const sql = postgres(connectionString, { max: 10 })
+declare global {
+  // eslint-disable-next-line no-var
+  var _sql: ReturnType<typeof postgres> | undefined
+}
+
+const sql = globalThis._sql ?? postgres(process.env.DATABASE_URL!, { max: 10 })
+if (process.env.NODE_ENV !== 'production') globalThis._sql = sql
 export default sql

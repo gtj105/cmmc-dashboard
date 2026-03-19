@@ -1,7 +1,9 @@
 import postgres from 'postgres'
 import bcrypt from 'bcryptjs'
 
-const sql = postgres(process.env.DATABASE_URL || 'postgres://cmmc_user:changeme@localhost:5432/cmmc_db')
+const dbUrl = process.env.DATABASE_URL
+if (!dbUrl) throw new Error('DATABASE_URL environment variable is required')
+const sql = postgres(dbUrl)
 
 async function seed() {
   console.log('Creating tables...')
@@ -284,15 +286,10 @@ async function seed() {
 
   // ── Backfill random updated_at for burndown chart ──
   console.log('Backfilling updated_at for burndown chart...')
-  const allPractices = await sql`SELECT id FROM practices`
-  for (const p of allPractices) {
-    const daysAgo = Math.floor(Math.random() * 91) // 0..90
-    await sql`
-      UPDATE practices
-      SET updated_at = NOW() - ${daysAgo + ' days'}::interval
-      WHERE id = ${p.id}
-    `
-  }
+  await sql`
+    UPDATE practices
+    SET updated_at = NOW() - (floor(random() * 91)::int || ' days')::interval
+  `
 
   // ── Admin user ──
   console.log('Creating admin user...')
