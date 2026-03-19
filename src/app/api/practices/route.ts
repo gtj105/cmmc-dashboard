@@ -9,6 +9,10 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const domain_id = searchParams.get('domain_id')
+  const domainIdNum = domain_id ? parseInt(domain_id) : null
+  if (domain_id && isNaN(domainIdNum!)) {
+    return NextResponse.json({ error: 'Invalid domain_id' }, { status: 400 })
+  }
   const framework = searchParams.get('framework')
   const status = searchParams.get('status')
   const risk_level = searchParams.get('risk_level')
@@ -18,7 +22,7 @@ export async function GET(req: NextRequest) {
     FROM practices p
     JOIN domains d ON d.id = p.domain_id
     WHERE TRUE
-      ${domain_id ? sql`AND p.domain_id = ${parseInt(domain_id)}` : sql``}
+      ${domainIdNum !== null ? sql`AND p.domain_id = ${domainIdNum}` : sql``}
       ${framework ? sql`AND p.framework = ${framework}` : sql``}
       ${status ? sql`AND p.status = ${status}` : sql``}
       ${risk_level ? sql`AND p.risk_level = ${risk_level}` : sql``}

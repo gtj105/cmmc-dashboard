@@ -8,15 +8,28 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const rows = await sql`
+    WITH weeks AS (
+      SELECT generate_series(
+        date_trunc('week', NOW() - INTERVAL '90 days'),
+        date_trunc('week', NOW()),
+        INTERVAL '1 week'
+      ) AS week_start
+    )
     SELECT
-      to_char(date_trunc('week', updated_at), 'Mon DD') AS week,
-      COUNT(*) FILTER (WHERE status IN ('Not Started', 'In Progress'))::int AS open,
-      COUNT(*) FILTER (WHERE status IN ('Implemented', 'Audit Ready'))::int AS closed
-    FROM practices
-    WHERE framework = 'CMMC'
-      AND updated_at >= NOW() - INTERVAL '90 days'
-    GROUP BY date_trunc('week', updated_at)
-    ORDER BY date_trunc('week', updated_at)
+      to_char(w.week_start, 'Mon DD') AS week,
+      COUNT(p.id) FILTER (
+        WHERE p.status IN ('Implemented', 'Audit Ready')
+          AND date_trunc('week', p.updated_at) <= w.week_start
+      )::int AS closed,
+      (SELECT COUNT(*) FROM practices WHERE framework = 'CMMC')::int -
+        COUNT(p.id) FILTER (
+          WHERE p.status IN ('Implemented', 'Audit Ready')
+            AND date_trunc('week', p.updated_at) <= w.week_start
+        )::int AS open
+    FROM weeks w
+    LEFT JOIN practices p ON p.framework = 'CMMC'
+    GROUP BY w.week_start
+    ORDER BY w.week_start
   `
 
   return NextResponse.json(rows)

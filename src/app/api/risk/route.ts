@@ -15,6 +15,7 @@ export async function GET() {
     FROM practices p
     JOIN domains d ON d.id = p.domain_id
     WHERE p.risk_level IN ('High', 'Critical')
+      AND p.framework IN ('CMMC', 'ITAR')
     ORDER BY
       CASE p.risk_level WHEN 'Critical' THEN 0 WHEN 'High' THEN 1 END,
       p.due_date ASC NULLS LAST
