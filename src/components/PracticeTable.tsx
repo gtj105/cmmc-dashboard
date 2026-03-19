@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { Practice, Status, RiskLevel } from '@/lib/types'
 import { StatusBadge } from '@/components/StatusBadge'
 import { RiskBadge } from '@/components/RiskBadge'
@@ -32,7 +32,11 @@ export function PracticeTable({ practices: initialPractices, onUpdate }: Practic
   const [practices, setPractices] = useState(initialPractices)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [riskFilter, setRiskFilter] = useState<string>('all')
-  const [updating, setUpdating] = useState<number | null>(null)
+  const [updating, setUpdating] = useState<Set<number>>(new Set())
+
+  useEffect(() => {
+    setPractices(initialPractices)
+  }, [initialPractices])
 
   const filtered = practices.filter((p) => {
     if (statusFilter !== 'all' && p.status !== statusFilter) return false
@@ -41,7 +45,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate }: Practic
   })
 
   const updatePractice = useCallback(async (id: number, updates: Record<string, unknown>) => {
-    setUpdating(id)
+    setUpdating((prev) => new Set(prev).add(id))
     try {
       const updated = await patchPractice(id, updates)
       setPractices((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)))
@@ -49,7 +53,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate }: Practic
     } catch (err) {
       console.error('Update failed:', err)
     } finally {
-      setUpdating(null)
+      setUpdating((prev) => { const s = new Set(prev); s.delete(id); return s })
     }
   }, [onUpdate])
 
@@ -113,7 +117,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate }: Practic
             filtered.map((practice) => (
               <TableRow
                 key={practice.id}
-                className={updating === practice.id ? 'opacity-60' : ''}
+                className={updating.has(practice.id) ? 'opacity-60' : ''}
               >
                 <TableCell>
                   <span className="font-mono text-xs text-muted-foreground">
@@ -129,7 +133,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate }: Practic
                     onValueChange={(value) =>
                       updatePractice(practice.id, { status: value as Status })
                     }
-                    disabled={updating === practice.id}
+                    disabled={updating.has(practice.id)}
                   >
                     <SelectTrigger className="h-7 text-xs border-none bg-transparent p-0 hover:bg-accent focus:ring-0">
                       <SelectValue>
@@ -159,7 +163,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate }: Practic
                         updatePractice(practice.id, { owner: newVal || null })
                       }
                     }}
-                    disabled={updating === practice.id}
+                    disabled={updating.has(practice.id)}
                   />
                 </TableCell>
                 <TableCell>
@@ -173,7 +177,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate }: Practic
                         updatePractice(practice.id, { due_date: newVal })
                       }
                     }}
-                    disabled={updating === practice.id}
+                    disabled={updating.has(practice.id)}
                   />
                 </TableCell>
                 <TableCell className="text-center">
@@ -182,7 +186,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate }: Practic
                     onCheckedChange={(checked) =>
                       updatePractice(practice.id, { evidence_exists: checked })
                     }
-                    disabled={updating === practice.id}
+                    disabled={updating.has(practice.id)}
                     aria-label="Evidence exists"
                   />
                 </TableCell>
@@ -197,7 +201,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate }: Practic
                         updatePractice(practice.id, { notes: newVal || null })
                       }
                     }}
-                    disabled={updating === practice.id}
+                    disabled={updating.has(practice.id)}
                     rows={1}
                   />
                 </TableCell>
