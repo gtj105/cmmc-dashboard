@@ -47,9 +47,24 @@ async function seed() {
     )
   `
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS poam_items (
+      id SERIAL PRIMARY KEY,
+      practice_id TEXT REFERENCES practices(practice_id) ON DELETE SET NULL,
+      finding TEXT NOT NULL,
+      responsible_individual TEXT,
+      resources_required TEXT,
+      scheduled_completion DATE,
+      milestone_progress INTEGER NOT NULL DEFAULT 0 CHECK (milestone_progress BETWEEN 0 AND 100),
+      status TEXT NOT NULL DEFAULT 'Open',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+
   // Clear existing data for idempotent re-runs
   console.log('Clearing existing data...')
-  await sql`TRUNCATE practices, domains, users RESTART IDENTITY CASCADE`
+  await sql`TRUNCATE poam_items, practices, domains, users RESTART IDENTITY CASCADE`
 
   // ── Domains (14 CMMC + 1 ITAR = 15 total) ──
   console.log('Inserting domains...')
@@ -87,24 +102,24 @@ async function seed() {
     // AC domain (id=1) — 22 practices
     { domain_id: 1, practice_id: 'AC.L2-3.1.1',  title: 'Limit System Access to Authorized Users', risk_level: 'High' },
     { domain_id: 1, practice_id: 'AC.L2-3.1.2',  title: 'Limit System Access to Types of Transactions and Functions', risk_level: 'High' },
-    { domain_id: 1, practice_id: 'AC.L2-3.1.3',  title: 'Control CUI Flow', risk_level: 'High' },
-    { domain_id: 1, practice_id: 'AC.L2-3.1.4',  title: 'Separate Duties of Individuals', risk_level: 'High' },
+    { domain_id: 1, practice_id: 'AC.L2-3.1.3',  title: 'Control CUI Flow', risk_level: 'Critical' }, // 5pt — direct CUI exfiltration vector
+    { domain_id: 1, practice_id: 'AC.L2-3.1.4',  title: 'Separate Duties of Individuals', risk_level: 'Medium' }, // 1pt — administrative control
     { domain_id: 1, practice_id: 'AC.L2-3.1.5',  title: 'Employ Least Privilege', risk_level: 'High' },
     { domain_id: 1, practice_id: 'AC.L2-3.1.6',  title: 'Use Non-Privileged Accounts or Roles', risk_level: 'Medium' },
-    { domain_id: 1, practice_id: 'AC.L2-3.1.7',  title: 'Prevent Non-Privileged Users from Executing Privileged Functions', risk_level: 'High' },
+    { domain_id: 1, practice_id: 'AC.L2-3.1.7',  title: 'Prevent Non-Privileged Users from Executing Privileged Functions', risk_level: 'Medium' }, // 1pt
     { domain_id: 1, practice_id: 'AC.L2-3.1.8',  title: 'Limit Unsuccessful Logon Attempts', risk_level: 'Medium' },
     { domain_id: 1, practice_id: 'AC.L2-3.1.9',  title: 'Provide Privacy and Security Notices', risk_level: 'Low' },
     { domain_id: 1, practice_id: 'AC.L2-3.1.10', title: 'Use Session Lock', risk_level: 'Medium' },
     { domain_id: 1, practice_id: 'AC.L2-3.1.11', title: 'Terminate Sessions', risk_level: 'Medium' },
     { domain_id: 1, practice_id: 'AC.L2-3.1.12', title: 'Monitor and Control Remote Access Sessions', risk_level: 'High' },
     { domain_id: 1, practice_id: 'AC.L2-3.1.13', title: 'Employ Cryptographic Mechanisms to Protect CUI During Transmission', risk_level: 'High' },
-    { domain_id: 1, practice_id: 'AC.L2-3.1.14', title: 'Route Remote Access via Managed Access Control Points', risk_level: 'High' },
-    { domain_id: 1, practice_id: 'AC.L2-3.1.15', title: 'Authorize Remote Execution of Privileged Commands', risk_level: 'High' },
-    { domain_id: 1, practice_id: 'AC.L2-3.1.16', title: 'Authorize Wireless Access', risk_level: 'High' },
+    { domain_id: 1, practice_id: 'AC.L2-3.1.14', title: 'Route Remote Access via Managed Access Control Points', risk_level: 'Medium' }, // 1pt
+    { domain_id: 1, practice_id: 'AC.L2-3.1.15', title: 'Authorize Remote Execution of Privileged Commands', risk_level: 'Medium' }, // 1pt
+    { domain_id: 1, practice_id: 'AC.L2-3.1.16', title: 'Authorize Wireless Access', risk_level: 'Medium' }, // 1pt — authorization policy; encryption covered by 3.1.17
     { domain_id: 1, practice_id: 'AC.L2-3.1.17', title: 'Protect Wireless Access Using Authentication and Encryption', risk_level: 'High' },
-    { domain_id: 1, practice_id: 'AC.L2-3.1.18', title: 'Control Connection of Mobile Devices', risk_level: 'High' },
+    { domain_id: 1, practice_id: 'AC.L2-3.1.18', title: 'Control Connection of Mobile Devices', risk_level: 'Medium' }, // 1pt — policy; encryption covered by 3.1.19
     { domain_id: 1, practice_id: 'AC.L2-3.1.19', title: 'Encrypt CUI on Mobile Devices', risk_level: 'High' },
-    { domain_id: 1, practice_id: 'AC.L2-3.1.20', title: 'Verify and Control All Connections to External Systems', risk_level: 'High' },
+    { domain_id: 1, practice_id: 'AC.L2-3.1.20', title: 'Verify and Control All Connections to External Systems', risk_level: 'Medium' }, // 1pt
     { domain_id: 1, practice_id: 'AC.L2-3.1.21', title: 'Limit Use of Portable Storage Devices on External Systems', risk_level: 'Medium' },
     { domain_id: 1, practice_id: 'AC.L2-3.1.22', title: 'Control CUI Posted or Processed on Publicly Accessible Systems', risk_level: 'High' },
 
@@ -125,10 +140,10 @@ async function seed() {
     { domain_id: 3, practice_id: 'AU.L2-3.3.9', title: 'Limit Management of Audit Logging to Subset of Privileged Users', risk_level: 'Medium' },
 
     // CA domain (id=4) — 4 practices
-    { domain_id: 4, practice_id: 'CA.L2-3.12.1', title: 'Periodically Assess Security Controls', risk_level: 'Medium' },
-    { domain_id: 4, practice_id: 'CA.L2-3.12.2', title: 'Develop and Implement Plans of Action', risk_level: 'Medium' },
-    { domain_id: 4, practice_id: 'CA.L2-3.12.3', title: 'Monitor Security Controls on an Ongoing Basis', risk_level: 'Medium' },
-    { domain_id: 4, practice_id: 'CA.L2-3.12.4', title: 'Develop, Document, and Periodically Update System Security Plans', risk_level: 'Medium' },
+    { domain_id: 4, practice_id: 'CA.L2-3.12.1', title: 'Periodically Assess Security Controls', risk_level: 'High' }, // 3pt — required for DFARS self-assessment
+    { domain_id: 4, practice_id: 'CA.L2-3.12.2', title: 'Develop and Implement Plans of Action', risk_level: 'High' }, // 3pt — POA&M required by DFARS 252.204-7019
+    { domain_id: 4, practice_id: 'CA.L2-3.12.3', title: 'Monitor Security Controls on an Ongoing Basis', risk_level: 'Medium' }, // 1pt
+    { domain_id: 4, practice_id: 'CA.L2-3.12.4', title: 'Develop, Document, and Periodically Update System Security Plans', risk_level: 'High' }, // 3pt — SSP required by DFARS; C3PAO primary artifact
 
     // CM domain (id=5) — 9 practices
     { domain_id: 5, practice_id: 'CM.L2-3.4.1', title: 'Establish Configuration Baselines', risk_level: 'High' },
@@ -143,13 +158,13 @@ async function seed() {
 
     // IA domain (id=6) — 11 practices
     { domain_id: 6, practice_id: 'IA.L2-3.5.1',  title: 'Identify System Users, Processes, and Devices', risk_level: 'Medium' },
-    { domain_id: 6, practice_id: 'IA.L2-3.5.2',  title: 'Authenticate Users, Processes, and Devices', risk_level: 'Medium' },
+    { domain_id: 6, practice_id: 'IA.L2-3.5.2',  title: 'Authenticate Users, Processes, and Devices', risk_level: 'High' }, // 3pt — foundational auth gate; prerequisite for MFA
     { domain_id: 6, practice_id: 'IA.L2-3.5.3',  title: 'Use Multifactor Authentication for Local and Network Access', risk_level: 'Critical' },
     { domain_id: 6, practice_id: 'IA.L2-3.5.4',  title: 'Employ Replay-Resistant Authentication Mechanisms', risk_level: 'High' },
     { domain_id: 6, practice_id: 'IA.L2-3.5.5',  title: 'Employ Identifier Management', risk_level: 'Medium' },
     { domain_id: 6, practice_id: 'IA.L2-3.5.6',  title: 'Employ Authentication Management', risk_level: 'Medium' },
     { domain_id: 6, practice_id: 'IA.L2-3.5.7',  title: 'Enforce Minimum Password Complexity and Change Requirements', risk_level: 'High' },
-    { domain_id: 6, practice_id: 'IA.L2-3.5.8',  title: 'Prohibit Password Reuse', risk_level: 'High' },
+    { domain_id: 6, practice_id: 'IA.L2-3.5.8',  title: 'Prohibit Password Reuse', risk_level: 'Medium' }, // 1pt — password policy
     { domain_id: 6, practice_id: 'IA.L2-3.5.9',  title: 'Allow Temporary Password Use with Immediate Change Requirement', risk_level: 'Medium' },
     { domain_id: 6, practice_id: 'IA.L2-3.5.10', title: 'Store and Transmit Only Cryptographically Protected Passwords', risk_level: 'High' },
     { domain_id: 6, practice_id: 'IA.L2-3.5.11', title: 'Obscure Feedback of Authentication Information', risk_level: 'Medium' },
@@ -157,7 +172,7 @@ async function seed() {
     // IR domain (id=7) — 3 practices
     { domain_id: 7, practice_id: 'IR.L2-3.6.1', title: 'Establish an Operational Incident-Handling Capability', risk_level: 'High' },
     { domain_id: 7, practice_id: 'IR.L2-3.6.2', title: 'Track, Document, and Report Incidents', risk_level: 'High' },
-    { domain_id: 7, practice_id: 'IR.L2-3.6.3', title: 'Test Incident Response Capability', risk_level: 'High' },
+    { domain_id: 7, practice_id: 'IR.L2-3.6.3', title: 'Test Incident Response Capability', risk_level: 'Medium' }, // 1pt — testing, not having, the capability
 
     // MA domain (id=8) — 6 practices
     { domain_id: 8, practice_id: 'MA.L2-3.7.1', title: 'Perform Maintenance on Organizational Systems', risk_level: 'Medium' },
@@ -179,7 +194,7 @@ async function seed() {
     { domain_id: 9, practice_id: 'MP.L2-3.8.9', title: 'Protect Backups of CUI', risk_level: 'High' },
 
     // PE domain (id=10) — 6 practices
-    { domain_id: 10, practice_id: 'PE.L2-3.10.1', title: 'Limit Physical Access to Organizational Systems', risk_level: 'Medium' },
+    { domain_id: 10, practice_id: 'PE.L2-3.10.1', title: 'Limit Physical Access to Organizational Systems', risk_level: 'High' }, // 3pt — physical access to CUI systems is a direct exfiltration path
     { domain_id: 10, practice_id: 'PE.L2-3.10.2', title: 'Protect and Monitor the Physical Facility and Support Infrastructure', risk_level: 'Medium' },
     { domain_id: 10, practice_id: 'PE.L2-3.10.3', title: 'Escort Visitors and Monitor Visitor Activity', risk_level: 'Medium' },
     { domain_id: 10, practice_id: 'PE.L2-3.10.4', title: 'Maintain Audit Logs of Physical Access', risk_level: 'Medium' },
@@ -197,18 +212,18 @@ async function seed() {
 
     // SC domain (id=13) — 16 practices
     { domain_id: 13, practice_id: 'SC.L2-3.13.1',  title: 'Monitor, Control, and Protect Communications at External Boundaries', risk_level: 'High' },
-    { domain_id: 13, practice_id: 'SC.L2-3.13.2',  title: 'Employ Architectural Designs, Software Development Techniques, and Systems Engineering Principles', risk_level: 'High' },
-    { domain_id: 13, practice_id: 'SC.L2-3.13.3',  title: 'Separate User Functionality from System Management Functionality', risk_level: 'High' },
-    { domain_id: 13, practice_id: 'SC.L2-3.13.4',  title: 'Prevent Unauthorized and Unintended Information Transfer', risk_level: 'High' },
+    { domain_id: 13, practice_id: 'SC.L2-3.13.2',  title: 'Employ Architectural Designs, Software Development Techniques, and Systems Engineering Principles', risk_level: 'Medium' }, // 1pt — design principle, not active control
+    { domain_id: 13, practice_id: 'SC.L2-3.13.3',  title: 'Separate User Functionality from System Management Functionality', risk_level: 'Medium' }, // 1pt
+    { domain_id: 13, practice_id: 'SC.L2-3.13.4',  title: 'Prevent Unauthorized and Unintended Information Transfer', risk_level: 'Medium' }, // 1pt
     { domain_id: 13, practice_id: 'SC.L2-3.13.5',  title: 'Implement Subnetworks for Publicly Accessible System Components', risk_level: 'High' },
     { domain_id: 13, practice_id: 'SC.L2-3.13.6',  title: 'Deny Network Communications Traffic by Default', risk_level: 'High' },
-    { domain_id: 13, practice_id: 'SC.L2-3.13.7',  title: 'Prevent Remote Devices from Simultaneously Using Non-Remote Connections', risk_level: 'High' },
+    { domain_id: 13, practice_id: 'SC.L2-3.13.7',  title: 'Prevent Remote Devices from Simultaneously Using Non-Remote Connections', risk_level: 'Medium' }, // 1pt — split tunneling prevention
     { domain_id: 13, practice_id: 'SC.L2-3.13.8',  title: 'Implement Cryptographic Mechanisms to Prevent Unauthorized Disclosure of CUI', risk_level: 'Critical' },
-    { domain_id: 13, practice_id: 'SC.L2-3.13.9',  title: 'Terminate Network Connections After Defined Period of Inactivity', risk_level: 'High' },
+    { domain_id: 13, practice_id: 'SC.L2-3.13.9',  title: 'Terminate Network Connections After Defined Period of Inactivity', risk_level: 'Medium' }, // 1pt — session timeout policy
     { domain_id: 13, practice_id: 'SC.L2-3.13.10', title: 'Establish and Manage Cryptographic Keys', risk_level: 'High' },
     { domain_id: 13, practice_id: 'SC.L2-3.13.11', title: 'Employ FIPS-Validated Cryptography When Used to Protect CUI', risk_level: 'Critical' },
-    { domain_id: 13, practice_id: 'SC.L2-3.13.12', title: 'Prohibit Remote Activation of Collaborative Computing Devices', risk_level: 'High' },
-    { domain_id: 13, practice_id: 'SC.L2-3.13.13', title: 'Control and Monitor the Use of Mobile Code', risk_level: 'High' },
+    { domain_id: 13, practice_id: 'SC.L2-3.13.12', title: 'Prohibit Remote Activation of Collaborative Computing Devices', risk_level: 'Medium' }, // 1pt
+    { domain_id: 13, practice_id: 'SC.L2-3.13.13', title: 'Control and Monitor the Use of Mobile Code', risk_level: 'Medium' }, // 1pt
     { domain_id: 13, practice_id: 'SC.L2-3.13.14', title: 'Control and Monitor the Use of VoIP Technologies', risk_level: 'Medium' },
     { domain_id: 13, practice_id: 'SC.L2-3.13.15', title: 'Protect the Authenticity of Communications Sessions', risk_level: 'High' },
     { domain_id: 13, practice_id: 'SC.L2-3.13.16', title: 'Protect CUI at Rest', risk_level: 'Critical' },
@@ -216,9 +231,9 @@ async function seed() {
     // SI domain (id=14) — 7 practices
     { domain_id: 14, practice_id: 'SI.L2-3.14.1', title: 'Identify, Report, and Correct System Flaws', risk_level: 'Medium' },
     { domain_id: 14, practice_id: 'SI.L2-3.14.2', title: 'Provide Protection from Malicious Code at Appropriate Locations', risk_level: 'High' },
-    { domain_id: 14, practice_id: 'SI.L2-3.14.3', title: 'Monitor System Security Alerts and Advisories', risk_level: 'High' },
+    { domain_id: 14, practice_id: 'SI.L2-3.14.3', title: 'Monitor System Security Alerts and Advisories', risk_level: 'Medium' }, // 1pt — advisory monitoring, not active detection
     { domain_id: 14, practice_id: 'SI.L2-3.14.4', title: 'Update Malicious Code Protection Mechanisms', risk_level: 'High' },
-    { domain_id: 14, practice_id: 'SI.L2-3.14.5', title: 'Perform Periodic Scans of Systems and Real-Time Scans of Files from External Sources', risk_level: 'High' },
+    { domain_id: 14, practice_id: 'SI.L2-3.14.5', title: 'Perform Periodic Scans of Systems and Real-Time Scans of Files from External Sources', risk_level: 'Medium' }, // 1pt — scan frequency; capability covered by 3.14.2
     { domain_id: 14, practice_id: 'SI.L2-3.14.6', title: 'Monitor Systems to Detect Attacks and Indicators of Potential Attacks', risk_level: 'High' },
     { domain_id: 14, practice_id: 'SI.L2-3.14.7', title: 'Identify Unauthorized Use of Systems', risk_level: 'High' },
   ]

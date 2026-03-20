@@ -28,7 +28,7 @@ function NavItem({ href, children, active }: { href: string; children: React.Rea
       className={cn(
         'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors',
         active
-          ? 'bg-accent text-foreground border-l-2 border-primary'
+          ? 'bg-accent text-foreground border-l-[3px] border-primary'
           : 'text-muted-foreground hover:bg-accent hover:text-foreground'
       )}
     >
@@ -37,13 +37,16 @@ function NavItem({ href, children, active }: { href: string; children: React.Rea
   )
 }
 
-export default function Sidebar() {
+export default function Sidebar({ orgName }: { orgName: string }) {
   const pathname = usePathname()
 
   return (
     <div className="flex w-60 flex-col border-r border-border bg-card overflow-y-auto">
-      <div className="flex h-14 items-center px-4 border-b border-border">
-        <span className="text-sm font-bold text-foreground tracking-wide">CMMC L2</span>
+      <div className="flex h-14 flex-col justify-center px-4 border-b border-border">
+        <span className="text-base font-bold text-foreground tracking-tight">CMMC L2</span>
+        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mt-0.5 truncate">
+          {orgName}
+        </span>
       </div>
       <nav className="flex flex-col gap-0.5 p-2 flex-1">
         <NavItem href="/overview" active={pathname === '/overview'}>
@@ -78,6 +81,16 @@ export default function Sidebar() {
         </NavItem>
         <NavItem href="/risk" active={pathname === '/risk'}>
           Risk Tracker
+        </NavItem>
+
+        <div className="px-3 py-2 mt-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Program Management
+          </span>
+        </div>
+
+        <NavItem href="/poam" active={pathname === '/poam'}>
+          POA&amp;M
         </NavItem>
       </nav>
     </div>

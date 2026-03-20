@@ -48,3 +48,18 @@ export interface OverviewStats {
   itar_score_pct: number
   last_assessment_date: string | null
 }
+
+export type PoamStatus = 'Open' | 'In Progress' | 'Closed'
+
+export interface PoamItem {
+  id: number
+  practice_id: string | null
+  finding: string
+  responsible_individual: string | null
+  resources_required: string | null
+  scheduled_completion: string | null
+  milestone_progress: number
+  status: PoamStatus
+  created_at: string
+  updated_at: string
+}
