@@ -39,28 +39,36 @@ export async function PATCH(
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
   }
 
-  // Fetch current values before updating (to capture old values for history)
-  const [before] = await sql`SELECT * FROM practices WHERE id = ${id}`
-  if (!before) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  let result: Record<string, unknown> | null = null
 
-  const [updated] = await sql`
-    UPDATE practices
-    SET ${sql(updates)}, updated_at = NOW()
-    WHERE id = ${id}
-    RETURNING *
-  `
+  await sql.begin(async (tx) => {
+    const q = tx as unknown as typeof sql
+    const [before] = await q`SELECT * FROM practices WHERE id = ${id} FOR UPDATE`
+    if (!before) return
 
-  // Write history entries for each changed field
-  const changedBy = session.user?.email ?? session.user?.name ?? 'unknown'
-  for (const [field, newVal] of Object.entries(updates)) {
-    const oldVal = (before as Record<string, unknown>)[field]
-    if (String(oldVal) !== String(newVal)) {
-      await sql`
-        INSERT INTO practice_history (practice_id, field_changed, old_value, new_value, changed_by)
-        VALUES (${before.practice_id}, ${field}, ${oldVal != null ? String(oldVal) : null}, ${newVal != null ? String(newVal) : null}, ${changedBy})
-      `
+    const [updated] = await q`
+      UPDATE practices
+      SET ${q(updates)}, updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING *
+    `
+    if (!updated) return
+
+    // Write history entries for changed fields
+    const changedBy = session.user?.email ?? session.user?.name ?? 'unknown'
+    for (const [field, newVal] of Object.entries(updates)) {
+      const oldVal = (before as Record<string, unknown>)[field]
+      if ((oldVal ?? '') !== (newVal ?? '')) {
+        await q`
+          INSERT INTO practice_history (practice_id, field_changed, old_value, new_value, changed_by)
+          VALUES (${before.practice_id}, ${field}, ${oldVal != null ? String(oldVal) : null}, ${newVal != null ? String(newVal) : null}, ${changedBy})
+        `
+      }
     }
-  }
 
-  return NextResponse.json(updated)
+    result = updated as Record<string, unknown>
+  })
+
+  if (!result) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  return NextResponse.json(result)
 }
