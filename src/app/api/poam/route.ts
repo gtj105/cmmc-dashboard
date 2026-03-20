@@ -33,18 +33,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   }
 
-  const [created] = await sql`
-    INSERT INTO poam_items (finding, practice_id, responsible_individual, resources_required, scheduled_completion, milestone_progress, status)
-    VALUES (
-      ${finding.trim()},
-      ${practice_id ?? null},
-      ${responsible_individual ?? null},
-      ${resources_required ?? null},
-      ${scheduled_completion ?? null},
-      ${milestone_progress ?? 0},
-      ${status ?? 'Open'}
-    )
-    RETURNING *
-  `
-  return NextResponse.json(created, { status: 201 })
+  try {
+    const [created] = await sql`
+      INSERT INTO poam_items (finding, practice_id, responsible_individual, resources_required, scheduled_completion, milestone_progress, status)
+      VALUES (
+        ${finding.trim()},
+        ${practice_id ?? null},
+        ${responsible_individual ?? null},
+        ${resources_required ?? null},
+        ${scheduled_completion ?? null},
+        ${milestone_progress ?? 0},
+        ${status ?? 'Open'}
+      )
+      RETURNING *
+    `
+    return NextResponse.json(created, { status: 201 })
+  } catch (err: unknown) {
+    const pgErr = err as { code?: string }
+    if (pgErr?.code === '23503') {
+      return NextResponse.json({ error: 'Invalid practice_id — practice not found' }, { status: 400 })
+    }
+    throw err
+  }
 }

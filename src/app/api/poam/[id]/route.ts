@@ -39,12 +39,22 @@ export async function PATCH(
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
   }
 
-  const [updated] = await sql`
-    UPDATE poam_items
-    SET ${sql(updates)}, updated_at = NOW()
-    WHERE id = ${id}
-    RETURNING *
-  `
+  let updated: Record<string, unknown> | undefined
+  try {
+    const [result] = await sql`
+      UPDATE poam_items
+      SET ${sql(updates)}, updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING *
+    `
+    updated = result
+  } catch (err: unknown) {
+    const pgErr = err as { code?: string }
+    if (pgErr?.code === '23503') {
+      return NextResponse.json({ error: 'Invalid practice_id — practice not found' }, { status: 400 })
+    }
+    throw err
+  }
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(updated)
 }
