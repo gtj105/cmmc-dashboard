@@ -63,3 +63,13 @@ export interface PoamItem {
   created_at: string
   updated_at: string
 }
+
+export interface ActivityEntry {
+  id: number
+  practice_id: string
+  field_changed: string
+  old_value: string | null
+  new_value: string | null
+  changed_by: string
+  changed_at: string
+}

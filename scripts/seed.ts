@@ -62,9 +62,21 @@ async function seed() {
     )
   `
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS practice_history (
+      id SERIAL PRIMARY KEY,
+      practice_id TEXT NOT NULL,
+      field_changed TEXT NOT NULL,
+      old_value TEXT,
+      new_value TEXT,
+      changed_by TEXT NOT NULL,
+      changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+
   // Clear existing data for idempotent re-runs
   console.log('Clearing existing data...')
-  await sql`TRUNCATE poam_items, practices, domains, users RESTART IDENTITY CASCADE`
+  await sql`TRUNCATE practice_history, poam_items, practices, domains, users RESTART IDENTITY CASCADE`
 
   // ── Domains (14 CMMC + 1 ITAR = 15 total) ──
   console.log('Inserting domains...')

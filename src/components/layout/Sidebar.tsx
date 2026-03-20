@@ -92,6 +92,9 @@ export default function Sidebar({ orgName }: { orgName: string }) {
         <NavItem href="/poam" active={pathname === '/poam'}>
           POA&amp;M
         </NavItem>
+        <NavItem href="/activity" active={pathname === '/activity'}>
+          Activity Log
+        </NavItem>
       </nav>
     </div>
   )
