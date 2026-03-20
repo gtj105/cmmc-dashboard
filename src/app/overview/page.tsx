@@ -45,6 +45,16 @@ export default async function OverviewPage() {
   `
   const sprsScore: number = sprsResult.sprs_score
 
+  // Fetch evidence gap count
+  const [evidenceGapResult] = await sql`
+    SELECT COUNT(*)::int AS evidence_gap
+    FROM practices
+    WHERE framework = 'CMMC'
+      AND status IN ('Implemented', 'Audit Ready')
+      AND evidence_exists = false
+  `
+  const evidenceGap: number = evidenceGapResult.evidence_gap
+
   const score_pct = stats.total > 0
     ? Math.round(((stats.implemented + stats.audit_ready) / stats.total) * 100)
     : 0
@@ -192,6 +202,19 @@ export default async function OverviewPage() {
             ))}
           </div>
         </div>
+
+        {/* Evidence Gap Warning */}
+        {evidenceGap > 0 && (
+          <div className="flex items-center gap-3 px-3 py-2 rounded-md border border-amber-600/35 bg-amber-950/10">
+            <span className="text-amber-500 text-sm font-semibold tabular-nums">{evidenceGap}</span>
+            <span className="text-xs text-amber-400">
+              {evidenceGap === 1 ? 'practice' : 'practices'} marked complete but missing evidence — will fail C3PAO audit
+            </span>
+            <a href="/risk" className="ml-auto text-xs text-amber-500 hover:text-amber-400 hover:underline underline-offset-2 shrink-0">
+              Review →
+            </a>
+          </div>
+        )}
 
         {/* Critical attention strip */}
         {criticalPractices.length > 0 && (
