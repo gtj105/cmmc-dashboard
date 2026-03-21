@@ -1,0 +1,263 @@
+'use client'
+
+import type { FormEvent } from 'react'
+import { useMemo, useState } from 'react'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import type { PoamItem, PoamStatus } from '@/lib/types'
+import {
+  buildPoamSummary,
+  createEmptyPoamForm,
+  filterPoamItems,
+  formatScheduledCompletion,
+  STATUSES,
+  STATUS_COLORS,
+  type PoamFormState,
+} from './poam-page-data'
+
+interface PoamTableProps {
+  initialItems: PoamItem[]
+  canEdit: boolean
+  canDelete: boolean
+}
+
+export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) {
+  const [items, setItems] = useState<PoamItem[]>(initialItems)
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState<PoamFormState>(createEmptyPoamForm())
+  const [saving, setSaving] = useState(false)
+
+  const filteredItems = useMemo(() => filterPoamItems(items, statusFilter), [items, statusFilter])
+  const summary = useMemo(() => buildPoamSummary(items), [items])
+
+  async function handleStatusChange(id: number, newStatus: PoamStatus) {
+    if (!canEdit) return
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item)))
+    await fetch(`/api/poam/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    })
+  }
+
+  async function handleProgressChange(id: number, progress: number) {
+    if (!canEdit) return
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, milestone_progress: progress } : item)))
+    await fetch(`/api/poam/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ milestone_progress: progress }),
+    })
+  }
+
+  async function handleCreate(e: FormEvent) {
+    e.preventDefault()
+    if (!canEdit || !form.finding.trim()) return
+    setSaving(true)
+    const res = await fetch('/api/poam', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        finding: form.finding,
+        practice_id: form.practiceId || null,
+        responsible_individual: form.owner || null,
+        resources_required: form.resources || null,
+        scheduled_completion: form.date || null,
+      }),
+    })
+    if (res.ok) {
+      const created = await res.json()
+      setItems((prev) => [created, ...prev])
+      setForm(createEmptyPoamForm())
+      setShowForm(false)
+    }
+    setSaving(false)
+  }
+
+  async function handleDelete(id: number) {
+    if (!canDelete) return
+    const res = await fetch(`/api/poam/${id}`, { method: 'DELETE' })
+    if (res.ok) setItems((prev) => prev.filter((item) => item.id !== id))
+  }
+
+  return (
+    <>
+      <section className="grid gap-6 border-b border-border pb-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)]">
+        <div className="space-y-4">
+          <p className="command-kicker">Remediation command surface</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Plan of Action & Milestones</h1>
+          <p className="max-w-[44rem] text-sm leading-6 text-muted-foreground">
+            Customer-owned remediation work stays in scope here so the customer-owned backlog, due dates, and milestone movement stay visible without leaving the execution surface.
+          </p>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="command-panel px-4 py-3">
+              <div className="text-2xl font-semibold tabular-nums text-red-300">{summary.openCount}</div>
+              <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Customer-owned backlog</div>
+            </div>
+            <div className="command-panel px-4 py-3">
+              <div className="text-2xl font-semibold tabular-nums text-amber-300">{summary.inProgressCount}</div>
+              <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Active work</div>
+            </div>
+            <div className="command-panel px-4 py-3">
+              <div className="text-2xl font-semibold tabular-nums text-green-300">{summary.closedCount}</div>
+              <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Closed items</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="command-panel p-4">
+          <div className="flex items-center justify-between">
+            <p className="command-kicker">Control view</p>
+            {canEdit && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 border-border/80 bg-card/40 text-xs"
+                onClick={() => setShowForm((v) => !v)}
+              >
+                {showForm ? 'Cancel' : 'Create finding'}
+              </Button>
+            )}
+          </div>
+          <div className="mt-4 w-36">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-8 border-border/80 bg-card/40 text-xs">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </section>
+
+      {canEdit && showForm && (
+        <form onSubmit={handleCreate} className="command-panel space-y-3 p-4">
+          <p className="command-kicker">Create finding</p>
+          <textarea
+            required
+            placeholder="Finding description"
+            value={form.finding}
+            onChange={(e) => setForm((prev) => ({ ...prev, finding: e.target.value }))}
+            className="w-full resize-none border border-border/70 bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            rows={2}
+          />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              type="text"
+              placeholder="Practice ID"
+              value={form.practiceId}
+              onChange={(e) => setForm((prev) => ({ ...prev, practiceId: e.target.value }))}
+              className="border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <input
+              type="text"
+              placeholder="Responsible individual"
+              value={form.owner}
+              onChange={(e) => setForm((prev) => ({ ...prev, owner: e.target.value }))}
+              className="border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <input
+              type="text"
+              placeholder="Resources required"
+              value={form.resources}
+              onChange={(e) => setForm((prev) => ({ ...prev, resources: e.target.value }))}
+              className="border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <input
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+              className="border border-border/70 bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" size="sm" className="h-8 text-xs" disabled={saving}>
+              {saving ? 'Saving…' : 'Create finding'}
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {filteredItems.length === 0 ? (
+        <div className="py-12 text-center text-sm text-muted-foreground">
+          {items.length === 0
+            ? 'No POA&M items yet. Create the first finding to start tracking customer-owned remediation work.'
+            : 'No items match the current filter.'}
+        </div>
+      ) : (
+        <div className="command-table-shell">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-32">Practice</TableHead>
+                <TableHead>Finding</TableHead>
+                <TableHead className="w-36">Owner</TableHead>
+                <TableHead className="w-28">Due Date</TableHead>
+                <TableHead className="w-24">Progress</TableHead>
+                <TableHead className="w-32">Status</TableHead>
+                <TableHead className="w-12"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredItems.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell><span className="font-mono text-xs text-muted-foreground">{item.practice_id ?? '—'}</span></TableCell>
+                  <TableCell><span className="text-xs text-foreground">{item.finding}</span></TableCell>
+                  <TableCell><span className="text-xs text-muted-foreground">{item.responsible_individual ?? '—'}</span></TableCell>
+                  <TableCell><span className="text-xs text-muted-foreground">{formatScheduledCompletion(item.scheduled_completion)}</span></TableCell>
+                  <TableCell>
+                    <Select
+                      value={String(item.milestone_progress)}
+                      onValueChange={(v) => handleProgressChange(item.id, parseInt(v, 10))}
+                      disabled={!canEdit}
+                    >
+                      <SelectTrigger className="h-8 w-20 border-border/70 bg-card/40 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((p) => (
+                          <SelectItem key={p} value={String(p)}>{p}%</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={item.status}
+                      onValueChange={(v) => handleStatusChange(item.id, v as PoamStatus)}
+                      disabled={!canEdit}
+                    >
+                      <SelectTrigger className={`h-8 w-28 border px-2 text-xs ${STATUS_COLORS[item.status]}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="text-xs text-muted-foreground transition-colors hover:text-red-300"
+                        title="Delete"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </>
+  )
+}

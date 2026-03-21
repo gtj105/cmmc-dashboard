@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
-    --card: 224 71% 6%;
-    --card-foreground: 213 31% 91%;
-    --popover: 224 71% 6%;
-    --popover-foreground: 213 31% 91%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 1.2%;
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
+    --background: 25 12% 6%;
+    --foreground: 30 15% 90%;
+    --card: 25 10% 8%;
+    --card-foreground: 30 15% 90%;
+    --popover: 25 10% 8%;
+    --popover-foreground: 30 15% 90%;
+    --primary: 30 20% 96%;
+    --primary-foreground: 25 12% 4%;
+    --secondary: 25 8% 13%;
+    --secondary-foreground: 30 15% 90%;
+    --muted: 25 8% 12%;
+    --muted-foreground: 25 6% 55%;
+    --accent: 25 8% 16%;
+    --accent-foreground: 30 15% 90%;
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 216 34% 17%;
+    --destructive-foreground: 30 15% 90%;
+    --border: 25 8% 16%;
+    --input: 25 8% 16%;
+    --ring: 25 8% 20%;
     --radius: 0.5rem;
   }
 }
@@ -33,6 +33,70 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  }
+}
+
+@keyframes status-flash {
+  0%   { opacity: 1; }
+  25%  { opacity: 0.35; }
+  100% { opacity: 1; }
+}
+@keyframes flash-green {
+  0%   { background-color: rgb(16 185 129 / 0.12); }
+  100% { background-color: transparent; }
+}
+@keyframes flash-red {
+  0%   { background-color: rgb(239 68 68 / 0.10); }
+  100% { background-color: transparent; }
+}
+@keyframes flash-amber {
+  0%   { background-color: rgb(245 158 11 / 0.10); }
+  100% { background-color: transparent; }
+}
+
+.status-flash          { animation: status-flash 300ms ease-out; }
+.status-flash-green    { animation: flash-green  600ms ease-out forwards; }
+.status-flash-red      { animation: flash-red    600ms ease-out forwards; }
+.status-flash-amber    { animation: flash-amber  600ms ease-out forwards; }
+
+.command-panel {
+  @apply border border-border bg-card/20;
+}
+
+.command-kicker {
+  @apply text-[11px] uppercase tracking-[0.18em] text-muted-foreground;
+}
+
+.command-table-shell {
+  @apply border border-border bg-card/10;
+}
+
+/* ─── Entry animations ───────────────────────────────────────────────────── */
+
+/* Stat panels: staggered slide-up on page load via @starting-style */
+@media (prefers-reduced-motion: no-preference) {
+  .stat-panel-grid > :nth-child(1) {
+    transition: opacity 320ms ease, transform 320ms ease;
+    @starting-style { opacity: 0; transform: translateY(6px); }
+  }
+  .stat-panel-grid > :nth-child(2) {
+    transition: opacity 320ms 80ms ease, transform 320ms 80ms ease;
+    @starting-style { opacity: 0; transform: translateY(6px); }
+  }
+  .stat-panel-grid > :nth-child(3) {
+    transition: opacity 320ms 160ms ease, transform 320ms 160ms ease;
+    @starting-style { opacity: 0; transform: translateY(6px); }
+  }
+}
+
+/* Ownership bar segments: reveal left-to-right */
+@keyframes segment-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0% 0 0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ownership-segment {
+    animation: segment-reveal 500ms cubic-bezier(0.25, 1, 0.5, 1) both;
   }
 }

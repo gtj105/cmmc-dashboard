@@ -21,17 +21,20 @@ export default function TopNav({ orgName, user }: TopNavProps) {
     : 'U'
 
   return (
-    <div className="flex h-14 items-center justify-between border-b border-border px-6">
+    <div className="flex h-14 items-center justify-between border-b border-border bg-background/95 px-6">
       <div className="flex items-center gap-3">
-        <span className="text-sm font-semibold text-foreground">{orgName}</span>
-        <Separator orientation="vertical" className="h-4" />
-        <span className="text-xs text-muted-foreground">CMMC Level 2 Dashboard</span>
+        <div>
+          <div className="text-sm font-semibold tracking-tight text-foreground">{orgName}</div>
+          <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Operations board</div>
+        </div>
+        <Separator orientation="vertical" className="h-6" />
+        <span className="text-xs text-muted-foreground">CMMC Level 2 command surface</span>
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-accent transition-colors">
+          <button className="flex items-center gap-2 rounded-sm border border-transparent px-2 py-1.5 transition-colors hover:border-border hover:bg-accent/40">
             <Avatar className="h-7 w-7">
-              <AvatarFallback className="text-xs bg-secondary text-secondary-foreground">
+              <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
                 {initials}
               </AvatarFallback>
             </Avatar>

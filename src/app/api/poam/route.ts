@@ -1,27 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+// GET removed — POAM page is now server-rendered; initial data fetched directly via sql
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthOptions, requireRole } from '@/lib/auth'
 import sql from '@/lib/db'
 import type { PoamStatus } from '@/lib/types'
 
+export const dynamic = 'force-dynamic'
+
 const VALID_STATUSES: PoamStatus[] = ['Open', 'In Progress', 'Closed']
 
-export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const items = await sql`
-    SELECT * FROM poam_items ORDER BY
-      CASE status WHEN 'Open' THEN 1 WHEN 'In Progress' THEN 2 ELSE 3 END,
-      scheduled_completion ASC NULLS LAST,
-      created_at DESC
-  `
-  return NextResponse.json(items)
-}
-
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const session = await getServerSession(getAuthOptions())
+  const authError = requireRole(session, 'editor')
+  if (authError) return authError
 
   const body = await req.json()
   const { finding, practice_id, responsible_individual, resources_required, scheduled_completion, milestone_progress, status } = body

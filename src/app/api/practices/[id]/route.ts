@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthOptions, requireRole } from '@/lib/auth'
 import sql from '@/lib/db'
 import type { Status, RiskLevel } from '@/lib/types'
+
+export const dynamic = 'force-dynamic'
 
 const VALID_STATUSES: Status[] = ['Not Started', 'In Progress', 'Implemented', 'Audit Ready']
 const VALID_RISKS: RiskLevel[] = ['Low', 'Medium', 'High', 'Critical']
@@ -11,8 +13,10 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const session = await getServerSession(getAuthOptions())
+  const authError = requireRole(session, 'editor')
+  if (authError) return authError
+  const actor = session!.user
 
   const id = parseInt(params.id)
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
@@ -55,7 +59,7 @@ export async function PATCH(
     if (!updated) return
 
     // Write history entries for changed fields
-    const changedBy = session.user?.email ?? session.user?.name ?? 'unknown'
+    const changedBy = actor.email ?? actor.name ?? 'unknown'
     for (const [field, newVal] of Object.entries(updates)) {
       const oldVal = (before as Record<string, unknown>)[field]
       if ((oldVal ?? '') !== (newVal ?? '')) {

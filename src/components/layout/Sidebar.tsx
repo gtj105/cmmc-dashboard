@@ -26,10 +26,10 @@ function NavItem({ href, children, active }: { href: string; children: React.Rea
     <Link
       href={href}
       className={cn(
-        'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors',
+        'flex items-center gap-2 rounded-sm px-3 py-2 text-sm transition-colors',
         active
-          ? 'bg-accent text-foreground border-l-[3px] border-primary'
-          : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+          ? 'border-l-2 border-l-sky-500 bg-accent/40 pl-[10px] text-foreground'
+          : 'border-l-2 border-l-transparent pl-[10px] text-muted-foreground hover:bg-accent/30 hover:text-foreground'
       )}
     >
       {children}
@@ -41,20 +41,19 @@ export default function Sidebar({ orgName }: { orgName: string }) {
   const pathname = usePathname()
 
   return (
-    <div className="flex w-60 flex-col border-r border-border bg-card overflow-y-auto">
-      <div className="flex h-14 flex-col justify-center px-4 border-b border-border">
-        <span className="text-base font-bold text-foreground tracking-tight">CMMC L2</span>
-        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mt-0.5 truncate">
-          {orgName}
-        </span>
+    <div className="flex w-64 flex-col overflow-y-auto border-r border-border bg-card/50">
+      <div className="border-b border-border px-4 py-4">
+        <span className="text-base font-semibold tracking-tight text-foreground">Command center</span>
+        <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">CMMC L2</div>
+        <div className="mt-3 text-xs text-muted-foreground truncate">{orgName}</div>
       </div>
-      <nav className="flex flex-col gap-0.5 p-2 flex-1">
+      <nav className="flex flex-1 flex-col gap-1 p-2">
         <NavItem href="/overview" active={pathname === '/overview'}>
           Overview
         </NavItem>
 
         <div className="px-3 py-2 mt-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             CMMC Domains
           </span>
         </div>
@@ -65,13 +64,13 @@ export default function Sidebar({ orgName }: { orgName: string }) {
             href={`/domain/${domain.id}`}
             active={pathname === `/domain/${domain.id}`}
           >
-            <span className="w-7 text-xs font-mono font-semibold text-primary">{domain.abbr}</span>
+            <span className="w-7 text-xs font-semibold text-sky-500/60">{domain.abbr}</span>
             <span className="truncate">{domain.name}</span>
           </NavItem>
         ))}
 
         <div className="px-3 py-2 mt-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Compliance
           </span>
         </div>
@@ -82,9 +81,12 @@ export default function Sidebar({ orgName }: { orgName: string }) {
         <NavItem href="/risk" active={pathname === '/risk'}>
           Risk Tracker
         </NavItem>
+        <NavItem href="/overlays" active={pathname === '/overlays'}>
+          Enclave Overlays
+        </NavItem>
 
         <div className="px-3 py-2 mt-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-600/70">
             Program Management
           </span>
         </div>

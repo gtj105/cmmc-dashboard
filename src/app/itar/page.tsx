@@ -1,16 +1,19 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthOptions } from '@/lib/auth'
 import sql from '@/lib/db'
 import AppShell from '@/components/layout/AppShell'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { PracticeTable } from '@/components/PracticeTable'
 import type { Practice } from '@/lib/types'
+import { ragTextClass } from '@/lib/ui-utils'
+
+export const dynamic = 'force-dynamic'
 
 export default async function ITARPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(getAuthOptions())
   if (!session) redirect('/login')
+  const canEdit = session.user.role === 'editor' || session.user.role === 'admin'
 
   const orgName = process.env.ORG_NAME ?? 'My Organization'
 
@@ -19,18 +22,9 @@ export default async function ITARPage() {
   `
 
   const total = practices.length
-  const done = practices.filter(
-    (p) => p.status === 'Implemented' || p.status === 'Audit Ready'
-  ).length
+  const done = practices.filter((p) => p.status === 'Implemented' || p.status === 'Audit Ready').length
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
 
-  function ragTextClass(p: number) {
-    if (p >= 80) return 'text-green-400'
-    if (p >= 40) return 'text-amber-400'
-    return 'text-red-400'
-  }
-
-  // Group practices by category (stored in practice_id prefix: ITAR-P, ITAR-DR, ITAR-AB, ITAR-D, ITAR-T)
   const categoryMap: Record<string, string> = {
     'ITAR-P': 'Personnel',
     'ITAR-DR': 'Data Residency',
@@ -39,59 +33,66 @@ export default async function ITARPage() {
     'ITAR-T': 'Training',
   }
 
+  const categories = Object.entries(categoryMap).map(([prefix, label]) => {
+    const categoryPractices = practices.filter((p) => p.practice_id.startsWith(`${prefix}-`))
+    const ready = categoryPractices.filter((p) => p.status === 'Implemented' || p.status === 'Audit Ready').length
+    const categoryPct = categoryPractices.length > 0 ? Math.round((ready / categoryPractices.length) * 100) : 0
+    return {
+      prefix,
+      label,
+      total: categoryPractices.length,
+      ready,
+      open: categoryPractices.length - ready,
+      pct: categoryPct,
+    }
+  }).sort((a, b) => a.pct - b.pct)
+
   return (
     <AppShell orgName={orgName}>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-purple-900/40 text-purple-400 border border-purple-700/50">
+      <div className="space-y-8">
+        <section className="grid gap-6 border-b border-border pb-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)]">
+          <div className="space-y-4">
+            <p className="command-kicker">Overlay command surface</p>
+            <div className="flex flex-wrap items-end gap-4">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground">Export Control Overlay</h1>
+              <span className="rounded-sm border border-amber-950/70 bg-amber-950/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200">
                 ITAR
               </span>
-              <h1 className="text-xl font-semibold text-foreground">Export Control Overlay</h1>
             </div>
-            <p className="text-sm text-muted-foreground">
-              ITAR and EAR compliance controls across 5 categories
+            <p className="max-w-[44rem] text-sm leading-6 text-muted-foreground">
+              ITAR and EAR compliance controls organized as an overlay on top of the core CMMC program.
             </p>
-          </div>
-          <Card className="w-44 shrink-0 border-purple-500/30">
-            <CardContent className="pt-4 pb-4 text-right">
-              <div className={`text-2xl font-bold ${ragTextClass(pct)}`}>{pct}%</div>
-              <Progress value={pct} className="mt-1 h-1.5" />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {done} / {total} controls
+
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+              <div className={`text-6xl font-semibold leading-none tracking-tight ${ragTextClass(pct)}`}>
+                {pct}<span className="ml-1 text-2xl font-normal text-muted-foreground">%</span>
+              </div>
+              <p className="max-w-[18rem] pb-1 text-sm leading-6 text-muted-foreground">
+                Overlay readiness across export-control-specific controls.
               </p>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <Progress value={pct} className="h-1.5 max-w-3xl" />
+          </div>
 
-        {/* Category summary cards */}
-        <div className="grid grid-cols-5 gap-3">
-          {Object.entries(categoryMap).map(([prefix, label]) => {
-            const catPractices = practices.filter((p) => p.practice_id.startsWith(prefix + '-'))
-            const catDone = catPractices.filter(
-              (p) => p.status === 'Implemented' || p.status === 'Audit Ready'
-            ).length
-            const catPct = catPractices.length > 0
-              ? Math.round((catDone / catPractices.length) * 100)
-              : 0
-            return (
-              <Card key={prefix} className="border-purple-500/20">
-                <CardHeader className="pb-1 pt-3 px-3">
-                  <CardTitle className="text-purple-400 text-xs">{label}</CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 pb-3">
-                  <div className={`text-lg font-bold ${ragTextClass(catPct)}`}>{catPct}%</div>
-                  <p className="text-[10px] text-muted-foreground">{catDone}/{catPractices.length}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+          <div className="command-panel p-4">
+            <p className="command-kicker">Category pressure</p>
+            <div className="mt-4 space-y-3">
+              {categories.map((category) => (
+                <div key={category.prefix} className="grid grid-cols-[minmax(0,1fr)_88px] items-center gap-4 border-t border-border pt-3 first:border-t-0 first:pt-0">
+                  <div>
+                    <p className="text-sm text-foreground">{category.label}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{category.open} open of {category.total} controls</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-2xl font-semibold tabular-nums ${ragTextClass(category.pct)}`}>{category.pct}%</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-        {/* Practice Table */}
-        <PracticeTable practices={practices as Practice[]} />
+        <PracticeTable practices={practices as Practice[]} canEdit={canEdit} />
       </div>
     </AppShell>
   )

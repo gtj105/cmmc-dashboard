@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "node --env-file=.env ./node_modules/.bin/tsx scripts/seed.ts",
+    "create-user": "node --env-file=.env ./node_modules/.bin/tsx scripts/create-user.ts",
+    "list-users": "node --env-file=.env ./node_modules/.bin/tsx scripts/list-users.ts",
+    "set-role": "node --env-file=.env ./node_modules/.bin/tsx scripts/set-role.ts",
+    "export-data": "node --env-file=.env ./node_modules/.bin/tsx scripts/export-data.ts",
+    "import-data": "node --env-file=.env ./node_modules/.bin/tsx scripts/import-data.ts"
   },
   "dependencies": {
     "next": "14.2.18",

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthOptions, requireRole } from '@/lib/auth'
 import sql from '@/lib/db'
 import type { PoamStatus } from '@/lib/types'
+
+export const dynamic = 'force-dynamic'
 
 const VALID_STATUSES: PoamStatus[] = ['Open', 'In Progress', 'Closed']
 
@@ -10,8 +12,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const session = await getServerSession(getAuthOptions())
+  const authError = requireRole(session, 'editor')
+  if (authError) return authError
 
   const id = parseInt(params.id)
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
@@ -63,8 +66,9 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const session = await getServerSession(getAuthOptions())
+  const authError = requireRole(session, 'admin')
+  if (authError) return authError
 
   const id = parseInt(params.id)
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
