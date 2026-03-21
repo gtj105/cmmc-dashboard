@@ -10,52 +10,116 @@ This project is designed for a small trusted user set. It is not intended to be 
 - activity history
 - admin CLI utilities for user and data management
 
-## Current Role Model
+---
 
-- `viewer`: read-only access
-- `editor`: can update practices and create/update POA&M items
-- `admin`: can do editor actions plus delete POA&M items
+## Installation Guide
 
-## Prerequisites
+Follow these steps in order. This should take about 10 minutes on a fresh machine.
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-- Node.js 20+ (only needed for CLI scripts — not required to run the app)
+### Step 1 — Install Docker Desktop
 
-## Environment Setup
+Docker runs the app and database in containers so you don't need to install anything else manually.
 
-Create a `.env.local` file in the project root before starting:
+1. Go to [https://www.docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop)
+2. Download the version for your operating system (Mac or Windows)
+3. Install it and open Docker Desktop
+4. Wait until the Docker icon in your menu bar / taskbar shows **"Docker Desktop is running"**
+
+### Step 2 — Accept the GitHub invitation
+
+You should have received an email from GitHub with an invitation to access this repository. Click **Accept invitation** in that email before continuing.
+
+### Step 3 — Download the code
+
+1. Go to [https://github.com/gtj105/cmmc-dashboard](https://github.com/gtj105/cmmc-dashboard)
+2. Click the green **Code** button
+3. Click **Download ZIP**
+4. Unzip the downloaded file — you'll get a folder called `cmmc-dashboard-master`
+5. Move that folder somewhere easy to find, like your Desktop or Documents
+
+> If you're comfortable with Git, you can also run: `git clone https://github.com/gtj105/cmmc-dashboard.git`
+
+### Step 4 — Open a terminal in the project folder
+
+**On Mac:**
+1. Open the `cmmc-dashboard-master` folder in Finder
+2. Right-click anywhere inside the folder and select **New Terminal at Folder**
+   *(or open Terminal from Applications → Utilities, then drag the folder onto the Terminal window)*
+
+**On Windows:**
+1. Open the `cmmc-dashboard-master` folder in File Explorer
+2. Click in the address bar at the top, type `cmd`, and press Enter
+
+### Step 5 — Create your environment file
+
+In the terminal, run:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Then edit `.env.local` and set a strong random value for `NEXTAUTH_SECRET`:
+Then open `.env.local` in any text editor (Notepad, TextEdit, VS Code) and replace `change-me` with a strong random password of your choice:
 
 ```
-NEXTAUTH_SECRET=your-random-secret-here
+NEXTAUTH_SECRET=some-long-random-string-you-make-up
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/cmmc
+ORG_NAME=Your Organization Name
 ```
 
-Generate a secret with: `openssl rand -base64 32`
+Save the file.
 
-## Quick Start
+### Step 6 — Start the app
 
-From the project root:
+In the terminal, run:
 
 ```bash
 docker compose up -d
 ```
 
-Open:
+This will download and start everything automatically. The first run takes 2–5 minutes depending on your internet connection. You'll see Docker pulling images and building the app — that's normal.
 
-```text
+When it finishes and you see your terminal prompt return, the app is ready.
+
+### Step 7 — Open the dashboard
+
+Open your browser and go to:
+
+```
 http://localhost/login
 ```
 
-Seeded default admin:
+Log in with the default admin account:
 
-- email: `admin@localhost`
-- password: `admin`
+- **Email:** `admin@localhost`
+- **Password:** `admin`
+
+> Change this password immediately after your first login via the user management commands below.
+
+---
+
+## Starting and Stopping
+
+Start the app (after initial setup):
+
+```bash
+docker compose up -d
+```
+
+Stop the app:
+
+```bash
+docker compose down
+```
+
+The database persists between stops. Your data is not lost when you stop.
+
+---
+
+## User Roles
+
+- `viewer` — read-only access
+- `editor` — can update practices and create/update POA&M items
+- `admin` — full access including deleting POA&M items
 
 ## Common Commands
 
