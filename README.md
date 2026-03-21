@@ -16,12 +16,33 @@ This project is designed for a small trusted user set. It is not intended to be 
 - `editor`: can update practices and create/update POA&M items
 - `admin`: can do editor actions plus delete POA&M items
 
+## Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+- Node.js 20+ (only needed for CLI scripts — not required to run the app)
+
+## Environment Setup
+
+Create a `.env.local` file in the project root before starting:
+
+```bash
+cp .env.example .env.local
+```
+
+Then edit `.env.local` and set a strong random value for `NEXTAUTH_SECRET`:
+
+```
+NEXTAUTH_SECRET=your-random-secret-here
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/cmmc
+```
+
+Generate a secret with: `openssl rand -base64 32`
+
 ## Quick Start
 
 From the project root:
 
 ```bash
-cd /Users/gtj105/Documents/obsidian/dashboard
 docker compose up -d
 ```
 
