@@ -58,10 +58,18 @@ In the terminal, run:
 cp .env.example .env.local
 ```
 
-Then open `.env.local` in any text editor (Notepad, TextEdit, VS Code) and replace `change-me` with a strong random password of your choice:
+Then open `.env.local` in any text editor (Notepad, TextEdit, VS Code) and replace `change-me` with a strong random secret.
+
+**To generate a strong secret — pick one of these methods:**
+
+- **Mac/Linux terminal:** `openssl rand -base64 32` — copy the output and paste it in
+- **Windows terminal:** `powershell -command "[System.Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))"` — copy the output and paste it in
+- **Online generator:** go to [https://generate-secret.vercel.app/32](https://generate-secret.vercel.app/32) and copy the value shown
+
+Your `.env.local` should look like this when done:
 
 ```
-NEXTAUTH_SECRET=some-long-random-string-you-make-up
+NEXTAUTH_SECRET=aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890abcd
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/cmmc
 ORG_NAME=Your Organization Name
 ```
