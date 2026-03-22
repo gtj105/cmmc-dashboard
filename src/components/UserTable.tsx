@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 
-interface UserRow {
+export interface UserRow {
   id: number
   email: string
   name: string

@@ -3,17 +3,9 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import sql from '@/lib/db'
 import AppShell from '@/components/layout/AppShell'
-import UserTable from '@/components/UserTable'
+import UserTable, { type UserRow } from '@/components/UserTable'
 
 export const dynamic = 'force-dynamic'
-
-interface UserRow {
-  id: number
-  email: string
-  name: string
-  role: string
-  created_at: string
-}
 
 export default async function AdminUsersPage() {
   const session = await getServerSession(getAuthOptions())
