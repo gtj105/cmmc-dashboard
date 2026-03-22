@@ -41,13 +41,29 @@ export default async function DomainPage({ params }: Props) {
   const coverageTotals = computeCoverageTotals(effectivePractices)
   const residualTotals = computeResidualTotals(effectivePractices)
 
+  // Evidence counts per practice
+  const practiceIds = effectivePractices.map((p) => p.practice_id)
+  const evidenceCounts = practiceIds.length > 0
+    ? await sql<Array<{ practice_id: string; evidence_count: number }>>`
+        SELECT practice_id, COUNT(*)::int AS evidence_count
+        FROM practice_evidence
+        WHERE practice_id = ANY(${sql.array(practiceIds)})
+        GROUP BY practice_id
+      `
+    : []
+  const evidenceCountMap = new Map(evidenceCounts.map((r) => [r.practice_id, r.evidence_count]))
+  const practicesWithEvidence = effectivePractices.map((p) => ({
+    ...p,
+    evidence_count: evidenceCountMap.get(p.practice_id) ?? 0,
+  }))
+
   const pct = coverageTotals.score_pct
   const openControls = coverageTotals.total - coverageTotals.total_covered
   const notStarted = coverageTotals.not_started
-  const evidenceGap = effectivePractices.filter((practice) =>
+  const evidenceGap = practicesWithEvidence.filter((practice) =>
     practice.is_customer_scored &&
     (practice.status === 'Implemented' || practice.status === 'Audit Ready') &&
-    !practice.evidence_exists,
+    practice.evidence_count === 0,
   ).length
 
   // Ownership breakdown for segmented bar
@@ -129,7 +145,7 @@ export default async function DomainPage({ params }: Props) {
 
         </section>
 
-        <PracticeTable practices={effectivePractices} canEdit={canEdit} />
+        <PracticeTable practices={practicesWithEvidence} canEdit={canEdit} />
       </div>
     </AppShell>
   )
