@@ -30,6 +30,8 @@ services:
       ORG_NAME: ${ORG_NAME:-My Organization}
     expose:
       - "3000"
+    volumes:
+      - evidence_data:/data/evidence
     security_opt:
       - no-new-privileges:true
 
@@ -51,3 +53,4 @@ services:
 
 volumes:
   pgdata:
+  evidence_data:
