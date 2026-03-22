@@ -99,6 +99,8 @@ Import `computeSprsScore`, `buildOverviewDomainSummaries` directly from `src/app
 - `EffectivePractice`
 - `ActivityEntry` (extend with `domain_abbr: string | null`)
 
+Define `ActivityEntryWithDomain` locally in `report-data.ts` as `ActivityEntry & { domain_abbr: string | null }`.
+
 ---
 
 ## Page Structure
