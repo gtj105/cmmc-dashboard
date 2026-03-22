@@ -2,13 +2,18 @@
 
 Internal compliance tracking dashboard for CMMC Level 2 and ITAR overlay work.
 
+![Overview](docs/screenshots/overview.png)
+
 This project is designed for a small trusted user set. It is not intended to be a public-facing multi-tenant product. The current system provides:
 
-- authenticated access with simple roles
-- CMMC and ITAR practice tracking
-- POA&M tracking
-- activity history
-- admin CLI utilities for user and data management
+- authenticated access with role-based access control (viewer / editor / admin)
+- CMMC Level 2 and ITAR practice tracking across all 14 domains
+- SPRS score calculation and compliance gauge
+- evidence management — attach files and URLs to practices
+- POA&M tracking with milestone progress
+- activity history across all practice changes
+- assessment report export (print to PDF via Ctrl+P)
+- admin user management UI
 
 ---
 
