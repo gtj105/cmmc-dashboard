@@ -57,6 +57,21 @@ export function resolveEvidencePath(relPath: string): string | null {
   return resolved
 }
 
+/** Generates a relative path for a new evidence file without writing it. */
+export function buildEvidencePath(practiceId: string, filename: string): string {
+  const ext = path.extname(filename).toLowerCase()
+  const safeId = practiceId.replace(/[^a-zA-Z0-9._-]/g, '_')
+  return `${safeId}/${randomUUID()}${ext}`
+}
+
+/** Writes a buffer to the given relative evidence path. Creates directories as needed. */
+export async function writeEvidenceFileAt(relPath: string, buffer: Buffer): Promise<void> {
+  const segments = relPath.split('/')
+  const dir = path.join(EVIDENCE_ROOT, segments[0])
+  await mkdir(dir, { recursive: true })
+  await writeFile(path.join(EVIDENCE_ROOT, ...segments), buffer)
+}
+
 /** Writes an uploaded file to disk. Returns the relative path stored in DB. */
 export async function writeEvidenceFile(
   practiceId: string,

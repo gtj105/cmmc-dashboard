@@ -3,9 +3,10 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
 import sql from '@/lib/db'
 import {
+  buildEvidencePath,
   validateFileSize,
   validateFileType,
-  writeEvidenceFile,
+  writeEvidenceFileAt,
 } from '@/lib/evidence'
 
 export const dynamic = 'force-dynamic'
@@ -59,25 +60,20 @@ export async function POST(
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
+    const relPath = buildEvidencePath(params.id, file.name)
 
-    // DB insert first (spec requirement: no file on disk without a DB record)
-    let relPath: string
-    let item: Record<string, unknown>
-    ;[item] = await sql`
+    // DB insert first with the real path — no sentinel needed
+    const [item] = await sql`
       INSERT INTO practice_evidence (practice_id, label, file_path, uploaded_by)
-      VALUES (${params.id}, ${label}, ${'__pending__'}, ${uploadedBy})
+      VALUES (${params.id}, ${label}, ${relPath}, ${uploadedBy})
       RETURNING *
     `
     try {
-      relPath = await writeEvidenceFile(params.id, file.name, buffer)
+      await writeEvidenceFileAt(relPath, buffer)
     } catch {
       await sql`DELETE FROM practice_evidence WHERE id = ${(item as { id: number }).id}`
       return NextResponse.json({ error: 'Failed to write file' }, { status: 500 })
     }
-    ;[item] = await sql`
-      UPDATE practice_evidence SET file_path = ${relPath} WHERE id = ${(item as { id: number }).id}
-      RETURNING *
-    `
     await sql`UPDATE practices SET evidence_exists = true WHERE practice_id = ${params.id}`
 
     return NextResponse.json(item, { status: 201 })
