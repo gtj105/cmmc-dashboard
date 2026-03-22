@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import type { EffectivePractice, Practice, Status, RiskLevel } from '@/lib/types'
 import { StatusBadge } from '@/components/StatusBadge'
 import { RiskBadge } from '@/components/RiskBadge'
@@ -10,6 +10,32 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { effectivePracticeStatus } from '@/lib/overlay-scoring'
 import { EvidenceDrawer } from '@/components/EvidenceDrawer'
+import { ASSESSMENT_OBJECTIVES } from '@/lib/assessment-objectives'
+import { CustomerActions } from '@/components/CustomerActions'
+
+export type ObjectiveStatus = 'met' | 'partial' | 'not_met' | 'not_assessed'
+
+const OBJECTIVE_STATUS_STYLES: Record<ObjectiveStatus, string> = {
+  met: 'border-green-800/60 bg-green-950/20 text-green-300',
+  partial: 'border-amber-800/60 bg-amber-950/20 text-amber-300',
+  not_met: 'border-red-800/60 bg-red-950/20 text-red-300',
+  not_assessed: 'border-border/50 bg-card/20 text-muted-foreground',
+}
+const OBJECTIVE_STATUS_LABELS: Record<ObjectiveStatus, string> = {
+  met: 'Met',
+  partial: 'Partial',
+  not_met: 'Not Met',
+  not_assessed: 'Not Assessed',
+}
+
+export function ObjectiveStatusBadge({ status }: { status: string }) {
+  const s = (status as ObjectiveStatus) in OBJECTIVE_STATUS_STYLES ? (status as ObjectiveStatus) : 'not_assessed'
+  return (
+    <span className={`shrink-0 border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] font-medium ${OBJECTIVE_STATUS_STYLES[s]}`}>
+      {OBJECTIVE_STATUS_LABELS[s]}
+    </span>
+  )
+}
 
 const STATUSES: Status[] = ['Not Started', 'In Progress', 'Implemented', 'Audit Ready']
 const RISKS: RiskLevel[] = ['Low', 'Medium', 'High', 'Critical']
@@ -65,6 +91,24 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
     () => Object.fromEntries(practices.map((p) => [p.practice_id, p.evidence_count ?? 0]))
   )
   const [drawerPracticeId, setDrawerPracticeId] = useState<string | null>(null)
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+  const [objectiveStatuses, setObjectiveStatuses] = useState<Record<string, Record<string, string>>>({})
+
+  async function toggleRow(practiceId: string) {
+    setExpandedRows((prev) => {
+      const next = new Set(prev)
+      if (next.has(practiceId)) { next.delete(practiceId); return next }
+      next.add(practiceId)
+      return next
+    })
+    if (!objectiveStatuses[practiceId]) {
+      const res = await fetch(`/api/practices/${practiceId}/objectives`)
+      if (res.ok) {
+        const data = await res.json()
+        setObjectiveStatuses((prev) => ({ ...prev, [practiceId]: data }))
+      }
+    }
+  }
 
   function handleEvidenceCountChange(practiceId: string, delta: number) {
     setEvidenceCounts((prev) => ({
@@ -85,21 +129,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
       if (riskFilter !== 'all' && p.risk_level !== riskFilter) return false
       return true
     })
-    .sort((a, b) => {
-      if (!showOwnership) return 0
-
-      const rank = (practice: TablePractice) => {
-        if (!isEffectivePractice(practice)) return 1
-        if (practice.is_fully_inherited) return 3
-        if (practice.requires_validation) return 0
-        if (practice.is_shared_responsibility) return 1
-        return 2
-      }
-
-      const rankDelta = rank(a) - rank(b)
-      if (rankDelta !== 0) return rankDelta
-      return a.practice_id.localeCompare(b.practice_id)
-    })
+    .sort((a, b) => a.practice_id.localeCompare(b.practice_id, undefined, { numeric: true }))
 
   const updatePractice = useCallback(async (id: number, updates: Record<string, unknown>) => {
     setUpdating((prev) => new Set(prev).add(id))
@@ -196,8 +226,8 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
                 const displayStatus = isEffectivePractice(practice) ? effectivePracticeStatus(practice) : practice.status
 
                 return (
+                  <React.Fragment key={practice.id}>
                   <TableRow
-                    key={practice.id}
                     className={[
                       fullyInheritedReadOnly ? 'opacity-55' : '',
                       updating.has(practice.id) ? 'opacity-60' : '',
@@ -209,16 +239,26 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
                     ].filter(Boolean).join(' ')}
                   >
                     <TableCell>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {practice.practice_id}
-                  </span>
+                      <div className="flex items-center gap-1.5">
+                        {ASSESSMENT_OBJECTIVES[practice.practice_id] && (
+                          <button
+                            onClick={() => toggleRow(practice.practice_id)}
+                            className="shrink-0 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                            title="Toggle assessment objectives"
+                          >
+                            <svg className={`h-3 w-3 transition-transform ${expandedRows.has(practice.practice_id) ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        )}
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {practice.practice_id}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <span className="text-sm">{practice.title}</span>
-                        {isEffectivePractice(practice) && practice.customer_actions && (
-                          <p className="text-xs text-muted-foreground">{practice.customer_actions}</p>
-                        )}
                         {fullyInheritedReadOnly && (
                           <p className="text-xs text-muted-foreground">CSP covered. This row counts toward progress and stays quiet in immediate-attention views.</p>
                         )}
@@ -318,6 +358,38 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
                       />
                     </TableCell>
                   </TableRow>
+                  {expandedRows.has(practice.practice_id) && ASSESSMENT_OBJECTIVES[practice.practice_id] && (
+                    <TableRow key={`${practice.id}-objectives`} className="bg-card/20 hover:bg-card/20">
+                      <TableCell />
+                      <TableCell colSpan={showOwnership ? 8 : 7} className="pb-4 pt-2">
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">Assessment Objectives — NIST SP 800-171A</p>
+                          {ASSESSMENT_OBJECTIVES[practice.practice_id].map((obj) => {
+                            const status = objectiveStatuses[practice.practice_id]?.[obj.letter]
+                            return (
+                              <div key={obj.letter} className="flex items-start gap-2.5">
+                                <span className="mt-px shrink-0 font-mono text-[10px] text-sky-500/60 w-4">[{obj.letter}]</span>
+                                <span className="text-xs text-foreground/80 flex-1">{obj.text}</span>
+                                <ObjectiveStatusBadge status={status ?? 'not_assessed'} />
+                              </div>
+                            )
+                          })}
+                          {isEffectivePractice(practice) && practice.customer_actions && (
+                            <div className="mt-3 border-t border-border/40 pt-3 space-y-1.5">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                Microsoft Implementation Guidance
+                                {practice.overlay_pack_name && (
+                                  <span className="ml-2 normal-case tracking-normal font-normal text-muted-foreground/60">— {practice.overlay_pack_name}</span>
+                                )}
+                              </p>
+                              <CustomerActions text={practice.customer_actions} />
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </React.Fragment>
                 )
               })()
             ))

@@ -33,7 +33,7 @@ export default async function AdminUsersPage() {
 
         <UserTable users={users} currentUserId={currentUserId} />
 
-        <div className="border-t border-border pt-8 space-y-4">
+        <div id="backup" className="border-t border-border pt-8 space-y-4">
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Backup & Restore</h2>
           </div>

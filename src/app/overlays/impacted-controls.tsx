@@ -9,6 +9,7 @@ import {
   type OverlayPackCard,
   validationStateLabel,
 } from './overlay-page-data'
+import { CustomerActions } from '@/components/CustomerActions'
 
 interface ImpactedControlsProps {
   groupedMappings: OverlayMappingGroup[]
@@ -147,7 +148,7 @@ export default function ImpactedControls({
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="text-xs text-foreground">{mapping.customer_actions}</div>
+                            <CustomerActions text={mapping.customer_actions} />
                             {mapping.rationale && <div className="text-[11px] text-muted-foreground">{mapping.rationale}</div>}
                           </div>
                         </TableCell>

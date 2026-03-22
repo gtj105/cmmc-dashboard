@@ -120,6 +120,13 @@ export default function Sidebar({ orgName, role }: { orgName: string; role?: str
             <NavItem href="/admin/users" active={pathname === '/admin/users'}>
               Users
             </NavItem>
+            <a
+              href="/admin/users#backup"
+              className="flex items-center gap-2 rounded-sm pl-8 pr-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span className="text-muted-foreground/40">↳</span>
+              Backup & Restore
+            </a>
           </>
         )}
       </nav>
