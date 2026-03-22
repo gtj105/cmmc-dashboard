@@ -5,6 +5,8 @@ import { useMemo, useState } from 'react'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
+import { PracticePicker } from '@/components/ui/practice-picker'
 import type { PoamItem, PoamStatus } from '@/lib/types'
 import {
   buildPoamSummary,
@@ -148,12 +150,9 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
             rows={18}
           />
           <div className="grid gap-2 sm:grid-cols-2">
-            <input
-              type="text"
-              placeholder="Practice ID"
+            <PracticePicker
               value={form.practiceId}
-              onChange={(e) => setForm((prev) => ({ ...prev, practiceId: e.target.value }))}
-              className="border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              onChange={(v) => setForm((prev) => ({ ...prev, practiceId: v }))}
             />
             <input
               type="text"
@@ -169,11 +168,9 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
               onChange={(e) => setForm((prev) => ({ ...prev, resources: e.target.value }))}
               className="border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <input
-              type="date"
+            <DatePicker
               value={form.date}
-              onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-              className="border border-border/70 bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              onChange={(v) => setForm((prev) => ({ ...prev, date: v }))}
             />
           </div>
           <div className="flex justify-end">
