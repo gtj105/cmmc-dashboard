@@ -150,6 +150,7 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
               required
               type="text"
               placeholder="Full name"
+              maxLength={100}
               value={createForm.name}
               onChange={(e) => setCreateForm(f => ({ ...f, name: e.target.value }))}
               className={inputCls}
@@ -158,6 +159,7 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
               required
               type="email"
               placeholder="Email address"
+              maxLength={254}
               value={createForm.email}
               onChange={(e) => setCreateForm(f => ({ ...f, email: e.target.value }))}
               className={inputCls}
@@ -166,6 +168,7 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
               required
               type="password"
               placeholder="Password (min 12 characters)"
+              maxLength={128}
               value={createForm.password}
               onChange={(e) => setCreateForm(f => ({ ...f, password: e.target.value }))}
               className={inputCls}

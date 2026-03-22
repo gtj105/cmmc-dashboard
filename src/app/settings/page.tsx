@@ -81,6 +81,7 @@ export default function SettingsPage() {
               <input
                 type="password"
                 required
+                maxLength={128}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 autoComplete="current-password"
@@ -92,6 +93,7 @@ export default function SettingsPage() {
               <input
                 type="password"
                 required
+                maxLength={128}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
@@ -103,6 +105,7 @@ export default function SettingsPage() {
               <input
                 type="password"
                 required
+                maxLength={128}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password"

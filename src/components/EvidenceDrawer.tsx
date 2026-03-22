@@ -196,7 +196,10 @@ export function EvidenceDrawer({
               </p>
             </div>
             {loading && <p className="px-4 py-2 text-xs text-muted-foreground">Loading…</p>}
-            {!loading && items.length === 0 && (
+            {!loading && error && items.length === 0 && (
+              <p className="px-4 py-2 text-xs text-red-300">{error}</p>
+            )}
+            {!loading && !error && items.length === 0 && (
               <p className="px-4 py-2 text-xs text-muted-foreground">No evidence attached yet.</p>
             )}
             <div className="px-4 pb-2 space-y-2">
@@ -259,6 +262,7 @@ export function EvidenceDrawer({
                 placeholder="Label (required)"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
+                maxLength={200}
                 className="mb-3 w-full border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
               <div className="mb-3 flex border-b border-border">

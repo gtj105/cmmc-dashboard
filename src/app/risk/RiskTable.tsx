@@ -155,7 +155,7 @@ export function RiskTable({ practices }: RiskTableProps) {
                     </span>
                   </TableCell>
                   <TableCell><RiskBadge risk={practice.risk_level} /></TableCell>
-                  <TableCell><span className="text-xs text-muted-foreground">{practice.owner ?? '—'}</span></TableCell>
+                  <TableCell className="max-w-[130px]"><span className="block truncate text-xs text-muted-foreground" title={practice.owner ?? undefined}>{practice.owner ?? '—'}</span></TableCell>
                   <TableCell><span className="text-xs text-muted-foreground">{formatRiskDueDate(practice.due_date)}</span></TableCell>
                   <TableCell><StatusBadge status={effectivePracticeStatus(practice)} /></TableCell>
                 </TableRow>

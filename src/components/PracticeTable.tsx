@@ -102,10 +102,14 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
       return next
     })
     if (!objectiveStatuses[practiceId]) {
-      const res = await fetch(`/api/practices/${practiceId}/objectives`)
-      if (res.ok) {
-        const data = await res.json()
-        setObjectiveStatuses((prev) => ({ ...prev, [practiceId]: data }))
+      try {
+        const res = await fetch(`/api/practices/${practiceId}/objectives`)
+        if (res.ok) {
+          const data = await res.json()
+          setObjectiveStatuses((prev) => ({ ...prev, [practiceId]: data }))
+        }
+      } catch {
+        // silently keep empty — objectives still display, just without saved statuses
       }
     }
   }
@@ -301,11 +305,12 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
                     <TableCell>
                       <RiskBadge risk={practice.risk_level} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="min-w-0">
                       <Input
-                        className="h-8 text-xs border-border/50 bg-card/50 focus:bg-card"
+                        className="h-8 text-xs border-border/50 bg-card/50 focus:bg-card truncate"
                         defaultValue={practice.owner ?? ''}
                         placeholder="Assign owner"
+                        maxLength={100}
                         onBlur={(e) => {
                           const newVal = e.target.value.trim()
                           if (newVal !== (practice.owner ?? '')) {
@@ -347,6 +352,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
                         className="min-h-0 h-8 resize-none text-xs border-border/50 bg-card/50 py-1.5 focus:bg-card"
                         defaultValue={practice.notes ?? ''}
                         placeholder="Add notes..."
+                        maxLength={2000}
                         onBlur={(e) => {
                           const newVal = e.target.value.trim()
                           if (newVal !== (practice.notes ?? '')) {

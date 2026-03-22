@@ -192,6 +192,7 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
             onChange={(e) => setForm((prev) => ({ ...prev, finding: e.target.value }))}
             className="w-full resize-y border border-border/70 bg-background px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             rows={18}
+            maxLength={5000}
           />
           <div className="grid gap-2 sm:grid-cols-2">
             <PracticePicker
@@ -202,6 +203,7 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
               type="text"
               placeholder="Responsible individual"
               value={form.owner}
+              maxLength={100}
               onChange={(e) => setForm((prev) => ({ ...prev, owner: e.target.value }))}
               className="border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
@@ -209,6 +211,7 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
               type="text"
               placeholder="Resources required"
               value={form.resources}
+              maxLength={500}
               onChange={(e) => setForm((prev) => ({ ...prev, resources: e.target.value }))}
               className="border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
