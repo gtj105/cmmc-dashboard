@@ -6,6 +6,38 @@ import sql from '@/lib/db'
 import type { UserRole } from '@/lib/types'
 
 const DUMMY_HASH = '$2b$10$dummy.hash.for.timing.protection.placeholder.xxxxx'
+
+// ---------------------------------------------------------------------------
+// In-memory login rate limiter (per email address)
+// ---------------------------------------------------------------------------
+const MAX_ATTEMPTS = 5
+const LOCKOUT_MS = 15 * 60 * 1000 // 15 minutes
+
+const loginAttempts = new Map<string, { count: number; lockedUntil: number }>()
+
+function isLockedOut(email: string): boolean {
+  const rec = loginAttempts.get(email)
+  if (!rec) return false
+  if (rec.lockedUntil && Date.now() < rec.lockedUntil) return true
+  // Expired lockout — reset
+  if (rec.lockedUntil && Date.now() >= rec.lockedUntil) loginAttempts.delete(email)
+  return false
+}
+
+function recordFailure(email: string): void {
+  const rec = loginAttempts.get(email) ?? { count: 0, lockedUntil: 0 }
+  const count = rec.count + 1
+  loginAttempts.set(email, {
+    count,
+    lockedUntil: count >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_MS : 0,
+  })
+}
+
+function clearFailures(email: string): void {
+  loginAttempts.delete(email)
+}
+// ---------------------------------------------------------------------------
+
 const ROLE_ORDER: Record<UserRole, number> = {
   viewer: 0,
   editor: 1,
@@ -53,15 +85,27 @@ export function getAuthOptions(): NextAuthOptions {
         },
         async authorize(credentials) {
           if (!credentials?.email || !credentials?.password) return null
+
+          const email = credentials.email.toLowerCase().trim()
+
+          if (isLockedOut(email)) {
+            throw new Error('TooManyAttempts')
+          }
+
           const [user] = await sql`
-            SELECT id, email, password_hash, name, role FROM users WHERE email = ${credentials.email}
+            SELECT id, email, password_hash, name, role FROM users WHERE email = ${email}
           `
           if (!user) {
             await bcrypt.compare(credentials.password, DUMMY_HASH)
+            recordFailure(email)
             return null
           }
           const valid = await bcrypt.compare(credentials.password, user.password_hash)
-          if (!valid) return null
+          if (!valid) {
+            recordFailure(email)
+            return null
+          }
+          clearFailures(email)
           return { id: String(user.id), email: user.email, name: user.name, role: normalizeRole(user.role) }
         },
       }),

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 
 function getAuthErrorMessage(errorCode: string | null): string {
   if (!errorCode) return ''
+  if (errorCode === 'TooManyAttempts') return 'Too many failed attempts. This account is locked for 15 minutes.'
   if (errorCode === 'CredentialsSignin') return 'Invalid email or password'
   if (errorCode === 'AccessDenied') return 'Access denied'
   if (errorCode === 'Configuration') return 'Authentication is temporarily unavailable'
