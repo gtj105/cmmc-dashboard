@@ -17,6 +17,9 @@ interface UserTableProps {
 
 const ROLES = ['viewer', 'editor', 'admin'] as const
 
+type CreateForm = { name: string; email: string; password: string; role: string }
+const emptyForm = (): CreateForm => ({ name: '', email: '', password: '', role: 'viewer' })
+
 function roleBadgeClass(role: string): string {
   if (role === 'admin') return 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
   if (role === 'editor') return 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
@@ -35,6 +38,35 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
   const [rows, setRows] = useState<UserRow[]>(users)
   const [pending, setPending] = useState<number | null>(null)
   const [error, setError] = useState<{ id: number; msg: string } | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [createForm, setCreateForm] = useState<CreateForm>(emptyForm())
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    setCreateError(null)
+    setCreating(true)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createForm),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setCreateError((data as { error?: string }).error ?? 'Failed to create user.')
+      } else {
+        setRows((prev) => [...prev, data as UserRow])
+        setCreateForm(emptyForm())
+        setShowCreate(false)
+      }
+    } catch {
+      setCreateError('Network error. Please try again.')
+    } finally {
+      setCreating(false)
+    }
+  }
 
   async function handleRoleChange(userId: number, newRole: string) {
     const previous = rows.find((r) => r.id === userId)?.role
@@ -74,7 +106,73 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
     }
   }
 
+  const inputCls = 'w-full border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary'
+
   return (
+    <div className="space-y-4">
+      {/* Create user form */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">{rows.length} {rows.length === 1 ? 'user' : 'users'}</span>
+        <button
+          type="button"
+          onClick={() => { setShowCreate(v => !v); setCreateError(null) }}
+          className="border border-border/80 bg-card/40 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-accent"
+        >
+          {showCreate ? 'Cancel' : 'Create user'}
+        </button>
+      </div>
+
+      {showCreate && (
+        <form onSubmit={handleCreate} className="border border-border bg-card/30 p-4 space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">New user</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              required
+              type="text"
+              placeholder="Full name"
+              value={createForm.name}
+              onChange={(e) => setCreateForm(f => ({ ...f, name: e.target.value }))}
+              className={inputCls}
+            />
+            <input
+              required
+              type="email"
+              placeholder="Email address"
+              value={createForm.email}
+              onChange={(e) => setCreateForm(f => ({ ...f, email: e.target.value }))}
+              className={inputCls}
+            />
+            <input
+              required
+              type="password"
+              placeholder="Password (min 12 characters)"
+              value={createForm.password}
+              onChange={(e) => setCreateForm(f => ({ ...f, password: e.target.value }))}
+              className={inputCls}
+            />
+            <select
+              value={createForm.role}
+              onChange={(e) => setCreateForm(f => ({ ...f, role: e.target.value }))}
+              className={inputCls}
+            >
+              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          {createError && (
+            <p className="text-xs text-destructive">{createError}</p>
+          )}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={creating}
+              className="border border-primary/60 bg-primary/10 px-4 py-1.5 text-xs text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+            >
+              {creating ? 'Creating…' : 'Create user'}
+            </button>
+          </div>
+        </form>
+      )}
+
     <div className="border border-border">
       <table className="w-full text-sm">
         <thead>
@@ -139,6 +237,7 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
           })}
         </tbody>
       </table>
+    </div>
     </div>
   )
 }
