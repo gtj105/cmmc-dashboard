@@ -6,10 +6,10 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { RiskBadge } from '@/components/RiskBadge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { effectivePracticeStatus } from '@/lib/overlay-scoring'
+import { EvidenceDrawer } from '@/components/EvidenceDrawer'
 
 const STATUSES: Status[] = ['Not Started', 'In Progress', 'Implemented', 'Audit Ready']
 const RISKS: RiskLevel[] = ['Low', 'Medium', 'High', 'Critical']
@@ -61,6 +61,17 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
   const [riskFilter, setRiskFilter] = useState<string>('all')
   const [updating, setUpdating] = useState<Set<number>>(new Set())
   const [justUpdated, setJustUpdated] = useState<Map<number, Status>>(new Map())
+  const [evidenceCounts, setEvidenceCounts] = useState<Record<string, number>>(
+    () => Object.fromEntries(practices.map((p) => [p.practice_id, p.evidence_count ?? 0]))
+  )
+  const [drawerPracticeId, setDrawerPracticeId] = useState<string | null>(null)
+
+  function handleEvidenceCountChange(practiceId: string, delta: number) {
+    setEvidenceCounts((prev) => ({
+      ...prev,
+      [practiceId]: Math.max(0, (prev[practiceId] ?? 0) + delta),
+    }))
+  }
 
   useEffect(() => {
     setPractices(initialPractices)
@@ -278,15 +289,18 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
                         disabled={editDisabled}
                       />
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={practice.evidence_exists}
-                        onCheckedChange={(checked) =>
-                          updatePractice(practice.id, { evidence_exists: checked })
-                        }
-                        disabled={editDisabled}
-                        aria-label="Evidence exists"
-                      />
+                    <TableCell>
+                    <button
+                      onClick={() => setDrawerPracticeId(practice.practice_id)}
+                      className={`text-[10px] uppercase tracking-[0.14em] px-2 py-1 border transition-colors ${
+                        (evidenceCounts[practice.practice_id] ?? 0) > 0
+                          ? 'border-green-800/60 bg-green-950/20 text-green-300 hover:bg-green-950/40'
+                          : 'border-border/50 bg-card/20 text-muted-foreground hover:bg-card/40'
+                      }`}
+                    >
+                      {evidenceCounts[practice.practice_id] ?? 0}{' '}
+                      {(evidenceCounts[practice.practice_id] ?? 0) === 1 ? 'item' : 'items'}
+                    </button>
                     </TableCell>
                     <TableCell>
                       <Textarea
@@ -311,6 +325,15 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
         </TableBody>
       </Table>
       </div>
+      <EvidenceDrawer
+        practiceId={drawerPracticeId}
+        practiceTitle={
+          practices.find((p) => p.practice_id === drawerPracticeId)?.title ?? ''
+        }
+        canEdit={canEdit}
+        onClose={() => setDrawerPracticeId(null)}
+        onCountChange={handleEvidenceCountChange}
+      />
     </div>
   )
 }
