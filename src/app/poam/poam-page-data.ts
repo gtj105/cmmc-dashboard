@@ -17,9 +17,27 @@ export type PoamFormState = {
   date: string
 }
 
+const FINDING_TEMPLATE = `GAP STATEMENT
+What is missing or weak:
+
+
+ROOT CAUSE
+Why the gap exists:
+
+
+REMEDIATION PLAN
+Actions:
+Owner:
+Due date:
+Dependencies:
+
+
+CLOSURE EVIDENCE
+What must exist before this can be closed:`
+
 export function createEmptyPoamForm(): PoamFormState {
   return {
-    finding: '',
+    finding: FINDING_TEMPLATE,
     practiceId: '',
     owner: '',
     resources: '',
