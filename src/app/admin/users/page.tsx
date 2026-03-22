@@ -4,6 +4,7 @@ import { getAuthOptions } from '@/lib/auth'
 import sql from '@/lib/db'
 import AppShell from '@/components/layout/AppShell'
 import UserTable, { type UserRow } from '@/components/UserTable'
+import BackupPanel from '@/components/BackupPanel'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +32,13 @@ export default async function AdminUsersPage() {
         </div>
 
         <UserTable users={users} currentUserId={currentUserId} />
+
+        <div className="border-t border-border pt-8 space-y-4">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Backup & Restore</h2>
+          </div>
+          <BackupPanel />
+        </div>
       </div>
     </AppShell>
   )
