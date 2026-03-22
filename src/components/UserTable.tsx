@@ -42,6 +42,26 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
   const [createForm, setCreateForm] = useState<CreateForm>(emptyForm())
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<number | null>(null)
+  const [deleting, setDeleting] = useState<number | null>(null)
+
+  async function handleDelete(userId: number) {
+    setDeleting(userId)
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
+      if (res.ok || res.status === 204) {
+        setRows((prev) => prev.filter((r) => r.id !== userId))
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setError({ id: userId, msg: (data as { error?: string }).error ?? 'Failed to delete user.' })
+      }
+    } catch {
+      setError({ id: userId, msg: 'Network error. Failed to delete user.' })
+    } finally {
+      setDeleting(null)
+      setPendingDelete(null)
+    }
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -189,6 +209,7 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Member Since
             </th>
+            <th className="w-24 px-4 py-3" />
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -224,6 +245,35 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatDate(user.created_at)}</td>
+                  <td className="px-4 py-3 text-right">
+                    {!isSelf && (
+                      pendingDelete === user.id ? (
+                        <span className="inline-flex items-center gap-2">
+                          <button
+                            onClick={() => handleDelete(user.id)}
+                            disabled={deleting === user.id}
+                            className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+                          >
+                            {deleting === user.id ? 'Deleting…' : 'Confirm'}
+                          </button>
+                          <button
+                            onClick={() => setPendingDelete(null)}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => { setError(null); setPendingDelete(user.id) }}
+                          className="text-xs text-muted-foreground transition-colors hover:text-red-400"
+                          title="Delete user"
+                        >
+                          Delete
+                        </button>
+                      )
+                    )}
+                  </td>
                 </tr>
                 {rowError && (
                   <tr className="bg-destructive/5">

@@ -101,6 +101,15 @@ export default function Sidebar({ orgName, role }: { orgName: string; role?: str
           Assessment Report
         </NavItem>
 
+        <div className="px-3 py-2 mt-2">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Account
+          </span>
+        </div>
+        <NavItem href="/settings" active={pathname === '/settings'}>
+          Settings
+        </NavItem>
+
         {role === 'admin' && (
           <>
             <div className="px-3 py-2 mt-2">
