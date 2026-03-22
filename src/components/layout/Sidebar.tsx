@@ -37,7 +37,7 @@ function NavItem({ href, children, active }: { href: string; children: React.Rea
   )
 }
 
-export default function Sidebar({ orgName }: { orgName: string }) {
+export default function Sidebar({ orgName, role }: { orgName: string; role?: string }) {
   const pathname = usePathname()
 
   return (
@@ -97,6 +97,22 @@ export default function Sidebar({ orgName }: { orgName: string }) {
         <NavItem href="/activity" active={pathname === '/activity'}>
           Activity Log
         </NavItem>
+        <NavItem href="/report" active={pathname === '/report'}>
+          Assessment Report
+        </NavItem>
+
+        {role === 'admin' && (
+          <>
+            <div className="px-3 py-2 mt-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Admin
+              </span>
+            </div>
+            <NavItem href="/admin/users" active={pathname === '/admin/users'}>
+              Users
+            </NavItem>
+          </>
+        )}
       </nav>
     </div>
   )
