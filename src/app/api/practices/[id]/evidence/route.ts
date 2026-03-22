@@ -3,8 +3,6 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
 import sql from '@/lib/db'
 import {
-  deleteEvidenceFile,
-  MAX_FILE_SIZE,
   validateFileSize,
   validateFileType,
   writeEvidenceFile,
