@@ -1,7 +1,7 @@
 'use client'
 
 import type { FormEvent } from 'react'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -30,58 +30,102 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<PoamFormState>(createEmptyPoamForm())
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const filteredItems = useMemo(() => filterPoamItems(items, statusFilter), [items, statusFilter])
   const summary = useMemo(() => buildPoamSummary(items), [items])
 
+  const showError = useCallback((msg: string) => {
+    setSaveError(msg)
+    if (dismissTimer.current) clearTimeout(dismissTimer.current)
+    dismissTimer.current = setTimeout(() => setSaveError(null), 5000)
+  }, [])
+
+  useEffect(() => () => { if (dismissTimer.current) clearTimeout(dismissTimer.current) }, [])
+
   async function handleStatusChange(id: number, newStatus: PoamStatus) {
     if (!canEdit) return
+    const previous = items.find((i) => i.id === id)?.status
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item)))
-    await fetch(`/api/poam/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    })
+    try {
+      const res = await fetch(`/api/poam/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (!res.ok) {
+        setItems((prev) => prev.map((item) => (item.id === id ? { ...item, status: previous! } : item)))
+        showError(res.status === 401 ? 'Session expired — please refresh.' : 'Failed to update status. Change reverted.')
+      }
+    } catch {
+      setItems((prev) => prev.map((item) => (item.id === id ? { ...item, status: previous! } : item)))
+      showError('Network error — failed to save status change.')
+    }
   }
 
   async function handleProgressChange(id: number, progress: number) {
     if (!canEdit) return
+    const previous = items.find((i) => i.id === id)?.milestone_progress
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, milestone_progress: progress } : item)))
-    await fetch(`/api/poam/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ milestone_progress: progress }),
-    })
+    try {
+      const res = await fetch(`/api/poam/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ milestone_progress: progress }),
+      })
+      if (!res.ok) {
+        setItems((prev) => prev.map((item) => (item.id === id ? { ...item, milestone_progress: previous! } : item)))
+        showError(res.status === 401 ? 'Session expired — please refresh.' : 'Failed to update progress. Change reverted.')
+      }
+    } catch {
+      setItems((prev) => prev.map((item) => (item.id === id ? { ...item, milestone_progress: previous! } : item)))
+      showError('Network error — failed to save progress change.')
+    }
   }
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()
     if (!canEdit || !form.finding.trim()) return
     setSaving(true)
-    const res = await fetch('/api/poam', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        finding: form.finding,
-        practice_id: form.practiceId || null,
-        responsible_individual: form.owner || null,
-        resources_required: form.resources || null,
-        scheduled_completion: form.date || null,
-      }),
-    })
-    if (res.ok) {
-      const created = await res.json()
-      setItems((prev) => [created, ...prev])
-      setForm(createEmptyPoamForm())
-      setShowForm(false)
+    try {
+      const res = await fetch('/api/poam', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          finding: form.finding,
+          practice_id: form.practiceId || null,
+          responsible_individual: form.owner || null,
+          resources_required: form.resources || null,
+          scheduled_completion: form.date || null,
+        }),
+      })
+      if (res.ok) {
+        const created = await res.json()
+        setItems((prev) => [created, ...prev])
+        setForm(createEmptyPoamForm())
+        setShowForm(false)
+      } else {
+        showError('Failed to create finding. Please try again.')
+      }
+    } catch {
+      showError('Network error — finding was not saved.')
     }
     setSaving(false)
   }
 
   async function handleDelete(id: number) {
     if (!canDelete) return
-    const res = await fetch(`/api/poam/${id}`, { method: 'DELETE' })
-    if (res.ok) setItems((prev) => prev.filter((item) => item.id !== id))
+    try {
+      const res = await fetch(`/api/poam/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setItems((prev) => prev.filter((item) => item.id !== id))
+      } else {
+        showError(res.status === 401 ? 'Session expired — please refresh.' : 'Failed to delete item.')
+      }
+    } catch {
+      showError('Network error — item was not deleted.')
+    }
   }
 
   return (
@@ -179,6 +223,13 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
             </Button>
           </div>
         </form>
+      )}
+
+      {saveError && (
+        <div className="flex items-center justify-between border border-red-900/60 bg-red-950/20 px-4 py-2.5 text-xs text-red-300">
+          <span>{saveError}</span>
+          <button onClick={() => setSaveError(null)} className="ml-4 text-red-400 hover:text-red-200">×</button>
+        </div>
       )}
 
       {filteredItems.length === 0 ? (
