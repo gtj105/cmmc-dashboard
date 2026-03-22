@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import AppShell from '@/components/layout/AppShell'
 import OverviewCharts from './OverviewCharts'
-import AnimatedNumber from '@/components/AnimatedNumber'
 import AnimatedProgress from '@/components/AnimatedProgress'
+import ComplianceGauge from '@/components/ComplianceGauge'
 import {
   computeItarScorePct,
   fetchOverviewData,
@@ -78,29 +78,14 @@ export default async function OverviewPage() {
           }>
             {/* Left: headline numbers + status cards in one row, progress below */}
             <div className="space-y-4">
-              <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
-                {/* Headline metrics */}
-                <div className="flex flex-wrap items-end gap-x-8 gap-y-3 shrink-0">
-                  <div>
-                    <div className={`text-6xl font-semibold leading-none tracking-tight ${ragTextClass(primaryScorePct)}`}>
-                      <AnimatedNumber value={primaryScorePct} />
-                      <span className="ml-1 text-xl font-normal text-muted-foreground">%</span>
-                    </div>
-                    <p className="mt-1.5 text-xs text-muted-foreground">CMMC Level 2</p>
-                  </div>
-
-                  <div className="border-l border-border pl-6">
-                    <div className={`text-6xl font-semibold leading-none tabular-nums ${sprsScore >= 80 ? 'text-green-300' : sprsScore >= 0 ? 'text-amber-300' : 'text-red-300'}`}>
-                      <AnimatedNumber value={sprsScore} />
-                    </div>
-                    <p className="mt-1.5 text-xs text-muted-foreground">
-                      Current SPRS <span className="text-muted-foreground/50">(-203 → 110)</span>
-                      {hasActiveOverlay && baselineSprsScore !== sprsScore && (
-                        <span className="ml-2 text-[11px] text-muted-foreground/60">Baseline {baselineSprsScore}</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+                {/* Gauge */}
+                <ComplianceGauge
+                  cmmc={primaryScorePct}
+                  sprs={sprsScore}
+                  baselineSprs={baselineSprsScore}
+                  hasBaseline={hasActiveOverlay}
+                />
 
                 {/* Status cards — fill remaining horizontal space */}
                 <div className="grid grid-cols-2 gap-2 flex-1 min-w-[240px]">
