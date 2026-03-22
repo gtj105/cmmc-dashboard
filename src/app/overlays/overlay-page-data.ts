@@ -181,7 +181,7 @@ export function groupMappings(
     if (group) group.items.push(mapping)
   }
 
-  return groups.filter((group) => group.items.length > 0 || impactFilter !== 'all')
+  return groups.filter((group) => group.items.length > 0)
 }
 
 export function buildSummaryCards(summary: OverlaySummary | null) {
