@@ -74,6 +74,7 @@ export interface Practice {
   due_date: string | null
   evidence_exists: boolean
   notes: string | null
+  evidence_count?: number
   created_at: string
   updated_at: string
 }
@@ -113,6 +114,16 @@ export interface PoamItem {
   status: PoamStatus
   created_at: string
   updated_at: string
+}
+
+export interface EvidenceItem {
+  id: number
+  practice_id: string
+  label: string
+  file_path: string | null
+  url: string | null
+  uploaded_by: string
+  created_at: string
 }
 
 export interface ActivityEntry {
