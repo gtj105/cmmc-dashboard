@@ -271,3 +271,27 @@ This dashboard is intentionally simple.
 
 Use the CLI for infrequent admin tasks.
 Do not build a management UI unless those admin tasks become frequent enough to justify the extra surface area.
+
+## Evidence File Backup
+
+Evidence files are stored in the `evidence_data` Docker named volume at `/data/evidence/` inside the app container. They are NOT included in the `export-data` JSON backup.
+
+To back up evidence files:
+
+```bash
+docker run --rm \
+  -v evidence_data:/data \
+  -v $(pwd)/backups:/backup \
+  alpine tar czf /backup/evidence-$(date +%Y%m%d).tar.gz /data
+```
+
+To restore (substitute the actual backup filename for `evidence-YYYYMMDD.tar.gz`):
+
+```bash
+docker run --rm \
+  -v evidence_data:/data \
+  -v $(pwd)/backups:/backup \
+  alpine tar xzf /backup/evidence-YYYYMMDD.tar.gz -C /
+```
+
+Run both the database export and the evidence backup together for a complete snapshot.
