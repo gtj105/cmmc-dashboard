@@ -104,3 +104,36 @@
     animation: segment-reveal 500ms cubic-bezier(0.25, 1, 0.5, 1) both;
   }
 }
+
+/* EvidenceDrawer: slide in from right on mount */
+@media (prefers-reduced-motion: no-preference) {
+  .drawer-slide-in {
+    transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1), opacity 350ms cubic-bezier(0.16, 1, 0.3, 1);
+    @starting-style {
+      transform: translateX(24px);
+      opacity: 0;
+    }
+  }
+}
+
+/* Domain tile mini progress bars: fill from left on load */
+@media (prefers-reduced-motion: no-preference) {
+  .tile-bar-fill {
+    transform-origin: left;
+    transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+    @starting-style {
+      transform: scaleX(0);
+    }
+  }
+}
+
+/* Expanded practice row: fade + slide down on insert */
+@media (prefers-reduced-motion: no-preference) {
+  .expanded-row-enter > td {
+    transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1), transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    @starting-style {
+      opacity: 0;
+      transform: translateY(-3px);
+    }
+  }
+}

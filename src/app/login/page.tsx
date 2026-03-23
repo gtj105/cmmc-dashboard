@@ -61,7 +61,7 @@ function LoginForm() {
       {/* Left panel — brand */}
       <div className="hidden lg:flex w-[420px] shrink-0 flex-col justify-between border-r border-border bg-card p-12">
         <div>
-          <span className="text-[11px] font-mono font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+          <span className="text-[11px] font-mono font-semibold tracking-[0.18em] text-sky-400/70 uppercase">
             CMMC L2
           </span>
         </div>

@@ -365,7 +365,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
                     </TableCell>
                   </TableRow>
                   {expandedRows.has(practice.practice_id) && ASSESSMENT_OBJECTIVES[practice.practice_id] && (
-                    <TableRow key={`${practice.id}-objectives`} className="bg-card/20 hover:bg-card/20">
+                    <TableRow key={`${practice.id}-objectives`} className="expanded-row-enter bg-card/20 hover:bg-card/20">
                       <TableCell />
                       <TableCell colSpan={showOwnership ? 8 : 7} className="pb-4 pt-2">
                         <div className="space-y-1.5">

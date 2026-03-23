@@ -53,7 +53,7 @@ export default function Sidebar({ orgName, role }: { orgName: string; role?: str
         </NavItem>
 
         <div className="px-3 py-2 mt-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-500/50">
             CMMC Domains
           </span>
         </div>

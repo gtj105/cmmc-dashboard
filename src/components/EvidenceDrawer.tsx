@@ -143,7 +143,7 @@ export function EvidenceDrawer({
   const objectives = practiceId ? ASSESSMENT_OBJECTIVES[practiceId] : null
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-[480px] flex-col border-l border-sky-500/30 bg-background shadow-2xl">
+    <div className="drawer-slide-in fixed inset-y-0 right-0 z-50 flex w-[480px] flex-col border-l border-sky-500/30 bg-background shadow-2xl">
       {/* Header */}
       <div className="flex items-start justify-between border-b border-border px-4 py-4">
         <div>
