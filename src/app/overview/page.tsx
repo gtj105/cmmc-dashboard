@@ -50,10 +50,10 @@ export default async function OverviewPage() {
   const domainTiles = domainsWithPct
 
   const statusCards = [
-    { label: 'Not Started', value: statusBreakdown.not_started, tone: 'text-red-300',     bg: 'border-red-900/50 bg-red-950/15' },
-    { label: 'In Progress',  value: statusBreakdown.in_progress,  tone: 'text-amber-300', bg: 'border-amber-900/40 bg-amber-950/10' },
-    { label: 'Implemented',  value: statusBreakdown.implemented,  tone: 'text-foreground', bg: 'border-border/80 bg-card/40' },
-    { label: 'Audit Ready',  value: statusBreakdown.audit_ready,  tone: 'text-green-300', bg: 'border-emerald-900/40 bg-emerald-950/10' },
+    { label: 'Not Started', value: statusBreakdown.not_started, tone: 'text-red-300' },
+    { label: 'In Progress',  value: statusBreakdown.in_progress,  tone: 'text-amber-300' },
+    { label: 'Implemented',  value: statusBreakdown.implemented,  tone: 'text-foreground' },
+    { label: 'Audit Ready',  value: statusBreakdown.audit_ready,  tone: 'text-green-300' },
   ]
 
   return (
@@ -87,12 +87,12 @@ export default async function OverviewPage() {
                   hasBaseline={hasActiveOverlay}
                 />
 
-                {/* Status cards — fill remaining horizontal space */}
-                <div className="grid grid-cols-2 gap-2 flex-1 min-w-[240px]">
-                  {statusCards.map(({ label, value, tone, bg }) => (
-                    <div key={label} className={`border px-4 py-3 ${bg}`}>
+                {/* Status strip — single container, four columns, no card grid */}
+                <div className="flex flex-1 min-w-[280px] border border-border divide-x divide-border">
+                  {statusCards.map(({ label, value, tone }) => (
+                    <div key={label} className="flex-1 px-4 py-3 bg-card/20">
                       <div className={`text-2xl font-semibold tabular-nums ${tone}`}>{value}</div>
-                      <div className="command-kicker mt-1">{label}</div>
+                      <div className="command-stat-label mt-1">{label}</div>
                     </div>
                   ))}
                 </div>
@@ -246,7 +246,7 @@ export default async function OverviewPage() {
                 <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                   {domain.name}
                 </p>
-                <div className="mt-2 h-0.5 w-full overflow-hidden rounded-full bg-border/60">
+                <div className="mt-2 h-0.5 w-full overflow-hidden bg-border/60">
                   <div
                     className={`h-full ${domain.completion_pct >= 80 ? 'bg-emerald-500/60' : domain.completion_pct >= 40 ? 'bg-amber-500/60' : 'bg-red-500/60'}`}
                     style={{ width: `${domain.completion_pct}%` }}

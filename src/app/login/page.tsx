@@ -4,8 +4,6 @@ import { Suspense, useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 function getAuthErrorMessage(errorCode: string | null): string {
   if (!errorCode) return ''
@@ -68,7 +66,7 @@ function LoginForm() {
           </span>
         </div>
         <div>
-          <h1 className="text-4xl font-bold text-foreground leading-tight tracking-tight mb-5">
+          <h1 className="text-4xl font-semibold text-foreground leading-tight tracking-tight mb-5">
             Compliance<br />Tracking<br />Dashboard
           </h1>
           <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
@@ -88,9 +86,9 @@ function LoginForm() {
             <p className="text-sm text-muted-foreground">Enter your credentials to access the dashboard</p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="text-xs text-muted-foreground">Email</label>
+              <input
                 id="email"
                 type="email"
                 placeholder="admin@localhost"
@@ -98,11 +96,12 @@ function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                className="w-full border border-border/70 bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="text-xs text-muted-foreground">Password</label>
+              <input
                 id="password"
                 type="password"
                 placeholder="••••••••"
@@ -110,10 +109,11 @@ function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
+                className="w-full border border-border/70 bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
             {error && (
-              <p className="text-xs text-destructive-foreground bg-destructive/20 border border-destructive/30 rounded px-3 py-2">
+              <p className="text-xs text-destructive-foreground bg-destructive/20 border border-destructive/30 px-3 py-2">
                 {error}
               </p>
             )}

@@ -6,6 +6,7 @@ import AppShell from '@/components/layout/AppShell'
 import AnimatedNumber from '@/components/AnimatedNumber'
 import AnimatedProgress from '@/components/AnimatedProgress'
 import { PracticeTable } from '@/components/PracticeTable'
+import { FadeIn } from '@/components/FadeIn'
 import { fetchEffectivePractices } from '@/lib/overlays'
 import { computeBaselineTotals, computeCoverageTotals, computeResidualTotals } from '@/lib/overlay-scoring'
 import { ragTextClass } from '@/lib/ui-utils'
@@ -79,6 +80,8 @@ export default async function DomainPage({ params }: Props) {
   return (
     <AppShell orgName={orgName}>
       <div className="space-y-8">
+
+        {/* Score section — visible immediately as the number settles */}
         <section className="space-y-4 border-b border-border pb-8">
           <p className="command-kicker">Domain command surface</p>
 
@@ -104,7 +107,7 @@ export default async function DomainPage({ params }: Props) {
           {/* Ownership bar — only when an overlay is active */}
           {hasActiveOverlay && ownershipTotal > 0 && (
             <div className="max-w-3xl space-y-1.5">
-              <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-border/30">
+              <div className="flex h-1.5 w-full overflow-hidden bg-border/30">
                 {ownershipSegments.map((seg, i) => (
                   <div
                     key={seg.label}
@@ -123,29 +126,31 @@ export default async function DomainPage({ params }: Props) {
               </div>
             </div>
           )}
-
-          {/* Stat panels */}
-          <div className="flex items-center justify-between max-w-3xl">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground">Immediate Attention</h2>
-          </div>
-          <div className="stat-panel-grid grid gap-3 sm:grid-cols-3 max-w-3xl">
-            <div className="command-panel px-4 py-3">
-              <div className="text-2xl font-semibold tabular-nums text-foreground">{openControls}</div>
-              <div className="command-kicker mt-1">Open controls</div>
-            </div>
-            <div className={`border px-4 py-3 ${notStarted === 0 ? 'border-border/40 bg-card/10' : 'border-red-900/50 bg-red-950/15'}`}>
-              <div className={`text-2xl font-semibold tabular-nums ${notStarted === 0 ? 'text-muted-foreground/40' : 'text-red-300'}`}>{notStarted}</div>
-              <div className="command-kicker mt-1">Not started</div>
-            </div>
-            <div className={`border px-4 py-3 ${evidenceGap === 0 ? 'border-border/40 bg-card/10' : 'border-amber-900/40 bg-amber-950/10'}`}>
-              <div className={`text-2xl font-semibold tabular-nums ${evidenceGap === 0 ? 'text-muted-foreground/40' : 'text-amber-300'}`}>{evidenceGap}</div>
-              <div className="command-kicker mt-1">Evidence gaps</div>
-            </div>
-          </div>
-
         </section>
 
-        <PracticeTable practices={practicesWithEvidence} canEdit={canEdit} />
+        {/* Stat panels + table fade in after score settles */}
+        <FadeIn delay={700} className="space-y-8">
+          <section className="space-y-4 border-b border-border pb-8">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground">Immediate Attention</h2>
+            <div className="stat-panel-grid grid gap-3 sm:grid-cols-3 max-w-3xl">
+              <div className="command-panel px-4 py-3">
+                <div className="text-2xl font-semibold tabular-nums text-foreground">{openControls}</div>
+                <div className="command-stat-label mt-1">Open controls</div>
+              </div>
+              <div className={`border px-4 py-3 ${notStarted === 0 ? 'border-border/40 bg-card/10' : 'border-red-900/50 bg-red-950/15'}`}>
+                <div className={`text-2xl font-semibold tabular-nums ${notStarted === 0 ? 'text-muted-foreground/40' : 'text-red-300'}`}>{notStarted}</div>
+                <div className="command-stat-label mt-1">Not started</div>
+              </div>
+              <div className={`border px-4 py-3 ${evidenceGap === 0 ? 'border-border/40 bg-card/10' : 'border-amber-900/40 bg-amber-950/10'}`}>
+                <div className={`text-2xl font-semibold tabular-nums ${evidenceGap === 0 ? 'text-muted-foreground/40' : 'text-amber-300'}`}>{evidenceGap}</div>
+                <div className="command-stat-label mt-1">Evidence gaps</div>
+              </div>
+            </div>
+          </section>
+
+          <PracticeTable practices={practicesWithEvidence} canEdit={canEdit} />
+        </FadeIn>
+
       </div>
     </AppShell>
   )

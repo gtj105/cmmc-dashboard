@@ -25,7 +25,7 @@ export default function AppShell({
   if (status === 'loading' || status === 'unauthenticated') {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-muted-foreground text-sm">Loading...</div>
+        <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/40">Loading</span>
       </div>
     )
   }

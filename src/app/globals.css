@@ -68,6 +68,10 @@
   @apply text-[11px] uppercase tracking-[0.18em] text-muted-foreground;
 }
 
+.command-stat-label {
+  @apply text-[10px] uppercase tracking-[0.14em] text-muted-foreground/55;
+}
+
 .command-table-shell {
   @apply border border-border bg-card/10;
 }
