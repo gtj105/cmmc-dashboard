@@ -36,6 +36,12 @@ class ContainerHardeningTests(unittest.TestCase):
         self.assertIn('add_header X-Frame-Options "DENY" always;', nginx)
         self.assertIn('add_header Referrer-Policy "strict-origin-when-cross-origin" always;', nginx)
 
+    def test_app_healthcheck_uses_ipv4_loopback(self) -> None:
+        compose = (ROOT / "docker-compose.yml").read_text()
+
+        self.assertIn('wget -qO- http://127.0.0.1:3000/api/health | grep -q healthy', compose)
+        self.assertNotIn('wget -qO- http://localhost:3000/api/health | grep -q healthy', compose)
+
 
 if __name__ == "__main__":
     unittest.main()

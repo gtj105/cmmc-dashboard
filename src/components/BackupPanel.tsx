@@ -1,9 +1,18 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiFetch } from '@/lib/api-client'
 
 type Phase = 'idle' | 'confirm' | 'working' | 'done' | 'error'
+type ResetPhase = 'idle' | 'confirm' | 'typing' | 'working' | 'done' | 'error'
+
+interface BaselineInfo {
+  available: boolean
+  generated_at?: string
+  users?: number
+  domains?: number
+  practices?: number
+}
 
 export default function BackupPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -11,6 +20,23 @@ export default function BackupPanel() {
   const [importPhase, setImportPhase] = useState<Phase>('idle')
   const [importError, setImportError] = useState<string | null>(null)
   const [exportWorking, setExportWorking] = useState(false)
+
+  // Factory reset state
+  const [resetPhase, setResetPhase] = useState<ResetPhase>('idle')
+  const [resetError, setResetError] = useState<string | null>(null)
+  const [resetConfirmText, setResetConfirmText] = useState('')
+  const [baseline, setBaseline] = useState<BaselineInfo | null>(null)
+
+  const fetchBaseline = useCallback(async () => {
+    try {
+      const res = await apiFetch('/api/admin/factory-reset')
+      if (res.ok) setBaseline(await res.json())
+    } catch { /* ignore */ }
+  }, [])
+
+  useEffect(() => {
+    fetchBaseline()
+  }, [fetchBaseline])
 
   async function handleExport() {
     setExportWorking(true)
@@ -71,9 +97,33 @@ export default function BackupPanel() {
     setImportError(null)
   }
 
+  async function handleFactoryReset() {
+    setResetPhase('working')
+    setResetError(null)
+    try {
+      const res = await apiFetch('/api/admin/factory-reset', { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setResetPhase('done')
+      } else {
+        setResetError((data as { error?: string }).error ?? 'Factory reset failed.')
+        setResetPhase('error')
+      }
+    } catch {
+      setResetError('Network error. Factory reset did not complete.')
+      setResetPhase('error')
+    }
+  }
+
+  function cancelReset() {
+    setResetPhase('idle')
+    setResetConfirmText('')
+    setResetError(null)
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Description */}
+    <div className="space-y-8">
+      {/* ─── Description ─── */}
       <div className="border border-border bg-card/30 p-4 space-y-3 text-xs text-muted-foreground leading-relaxed">
         <p className="command-kicker">How backup & restore works</p>
         <div className="grid gap-4 sm:grid-cols-2 mt-2">
@@ -93,7 +143,7 @@ export default function BackupPanel() {
         </p>
       </div>
 
-      {/* Actions */}
+      {/* ─── Export / Import actions ─── */}
       <div className="flex flex-wrap items-start gap-4">
 
         {/* Export */}
@@ -178,6 +228,131 @@ export default function BackupPanel() {
             onChange={handleFileSelect}
           />
         </div>
+      </div>
+
+      {/* ─── Factory Reset ─── */}
+      <div className="border-t border-border pt-6 space-y-4">
+        <div>
+          <h3 className="text-xs font-semibold text-foreground">Factory Reset</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Wipe everything and restore the database to its original clean state. All practice statuses,
+            notes, POA&M items, history, and audit logs will be reset. User accounts will be restored
+            to whatever was in the baseline.
+          </p>
+        </div>
+
+        {baseline && !baseline.available && (
+          <div className="border border-amber-900/60 bg-amber-950/20 p-3">
+            <p className="text-xs text-amber-300">No baseline file found.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              To enable factory reset, run this command from your project directory:
+            </p>
+            <code className="block mt-1 text-[11px] font-mono text-foreground bg-card/40 px-2 py-1">
+              docker compose exec app npx tsx scripts/generate-baseline.ts
+            </code>
+          </div>
+        )}
+
+        {baseline?.available && (
+          <div className="text-[11px] text-muted-foreground space-y-0.5">
+            <p>
+              Baseline generated: {baseline.generated_at ? new Date(baseline.generated_at).toLocaleString() : 'unknown'}
+            </p>
+            <p>
+              Contains: {baseline.practices} practices, {baseline.domains} domains, {baseline.users} user{(baseline.users ?? 0) !== 1 ? 's' : ''}
+            </p>
+          </div>
+        )}
+
+        {resetPhase === 'idle' && baseline?.available && (
+          <button
+            onClick={() => setResetPhase('confirm')}
+            className="border border-red-900/60 bg-red-950/20 px-4 py-2 text-xs text-red-400 transition-colors hover:bg-red-950/40"
+          >
+            Factory reset…
+          </button>
+        )}
+
+        {resetPhase === 'confirm' && (
+          <div className="border border-red-900/60 bg-red-950/20 p-4 space-y-3 max-w-md">
+            <p className="text-xs font-semibold text-red-400">Are you sure?</p>
+            <p className="text-xs text-muted-foreground">
+              This will <span className="text-red-300 font-semibold">permanently destroy all current data</span> and
+              replace it with the baseline snapshot. This cannot be undone.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              If you want to keep your current data, export a backup first.
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setResetPhase('typing')}
+                className="border border-red-900/60 bg-red-950/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-950/50 transition-colors"
+              >
+                I understand, proceed
+              </button>
+              <button
+                onClick={cancelReset}
+                className="border border-border/70 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {resetPhase === 'typing' && (
+          <div className="border border-red-900/60 bg-red-950/20 p-4 space-y-3 max-w-md">
+            <p className="text-xs font-semibold text-red-400">Final confirmation</p>
+            <p className="text-xs text-muted-foreground">
+              Type <span className="font-mono text-red-300 font-semibold">RESET</span> to confirm.
+            </p>
+            <input
+              type="text"
+              value={resetConfirmText}
+              onChange={(e) => setResetConfirmText(e.target.value)}
+              placeholder="Type RESET"
+              className="w-full border border-red-900/40 bg-background px-3 py-2 text-xs text-foreground font-mono placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-red-500"
+              autoFocus
+            />
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={handleFactoryReset}
+                disabled={resetConfirmText !== 'RESET'}
+                className="border border-red-900/60 bg-red-950/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-950/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Reset to baseline
+              </button>
+              <button
+                onClick={cancelReset}
+                className="border border-border/70 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {resetPhase === 'working' && (
+          <p className="text-xs text-muted-foreground">Resetting to baseline… please wait.</p>
+        )}
+
+        {resetPhase === 'done' && (
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-green-400">Factory reset complete. Reload the page to see the clean state.</p>
+            <button onClick={() => window.location.reload()} className="text-xs text-muted-foreground underline hover:text-foreground">
+              Reload
+            </button>
+          </div>
+        )}
+
+        {resetPhase === 'error' && (
+          <div className="space-y-1.5">
+            <p className="text-xs text-destructive">{resetError}</p>
+            <button onClick={cancelReset} className="text-xs text-muted-foreground hover:text-foreground underline">
+              Try again
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

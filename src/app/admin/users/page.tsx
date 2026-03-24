@@ -3,12 +3,12 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import sql from '@/lib/db'
 import AppShell from '@/components/layout/AppShell'
-import UserTable, { type UserRow } from '@/components/UserTable'
-import BackupPanel from '@/components/BackupPanel'
+import AdminTabs from '@/components/AdminTabs'
+import { type UserRow } from '@/components/UserTable'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminUsersPage() {
+export default async function AdminPage() {
   const session = await getServerSession(getAuthOptions())
   if (!session || (session.user as { role?: string }).role !== 'admin') {
     redirect('/overview')
@@ -27,18 +27,11 @@ export default async function AdminUsersPage() {
     <AppShell orgName={orgName}>
       <div className="space-y-6">
         <div className="border-b border-border pb-4">
-          <h1 className="text-lg font-semibold tracking-tight text-foreground">Users</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage dashboard access roles.</p>
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">Administration</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage users, backups, security events, and system health.</p>
         </div>
 
-        <UserTable users={users} currentUserId={currentUserId} />
-
-        <div id="backup" className="border-t border-border pt-8 space-y-4">
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Backup & Restore</h2>
-          </div>
-          <BackupPanel />
-        </div>
+        <AdminTabs users={users} currentUserId={currentUserId} />
       </div>
     </AppShell>
   )

@@ -31,6 +31,7 @@ services:
       db:
         condition: service_healthy
     environment:
+      HOSTNAME: "0.0.0.0"
       DATABASE_URL: postgres://cmmc_user:${POSTGRES_PASSWORD?POSTGRES_PASSWORD is required}@db:5432/cmmc_db
       NEXTAUTH_SECRET_FILE: /run/secrets/nextauth_secret
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost}
@@ -42,11 +43,11 @@ services:
     secrets:
       - nextauth_secret
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q healthy"]
-      interval: 30s
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health | grep -q healthy"]
+      interval: 10s
       timeout: 10s
-      retries: 3
-      start_period: 30s
+      retries: 6
+      start_period: 40s
     security_opt:
       - no-new-privileges:true
     logging:
