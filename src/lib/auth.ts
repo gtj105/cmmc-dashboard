@@ -66,9 +66,21 @@ export function requireRole(
 }
 
 function getNextAuthSecret(): string {
+  // Support Docker secrets (file-based) with fallback to env var
+  const secretFile = process.env.NEXTAUTH_SECRET_FILE
+  if (secretFile) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require('fs')
+      const secret = fs.readFileSync(secretFile, 'utf8').trim()
+      if (secret) return secret
+    } catch {
+      // Fall through to env var
+    }
+  }
   const secret = process.env.NEXTAUTH_SECRET
   if (!secret) {
-    throw new Error('NEXTAUTH_SECRET environment variable is required')
+    throw new Error('NEXTAUTH_SECRET is required (set NEXTAUTH_SECRET_FILE or NEXTAUTH_SECRET)')
   }
   return secret
 }

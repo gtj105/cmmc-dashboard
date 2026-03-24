@@ -5,16 +5,23 @@ services:
     environment:
       POSTGRES_DB: cmmc_db
       POSTGRES_USER: cmmc_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?POSTGRES_PASSWORD is required}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    secrets:
+      - postgres_password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cmmc_user -d cmmc_db"]
       interval: 5s
       timeout: 5s
       retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   app:
     build:
@@ -25,15 +32,22 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://cmmc_user:${POSTGRES_PASSWORD?POSTGRES_PASSWORD is required}@db:5432/cmmc_db
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET?NEXTAUTH_SECRET is required}
+      NEXTAUTH_SECRET_FILE: /run/secrets/nextauth_secret
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost}
       ORG_NAME: ${ORG_NAME:-My Organization}
     expose:
       - "3000"
     volumes:
       - evidence_data:/data/evidence
+    secrets:
+      - nextauth_secret
     security_opt:
       - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   nginx:
     image: nginx:alpine
@@ -50,7 +64,42 @@ services:
       - /var/run
     security_opt:
       - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  backup:
+    build:
+      context: ./backups
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?POSTGRES_PASSWORD is required}
+      BACKUP_SCHEDULE: "${BACKUP_SCHEDULE:-0 2 * * *}"
+    volumes:
+      - backup_data:/backups
+      - evidence_data:/evidence:ro
+    secrets:
+      - postgres_password
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  nextauth_secret:
+    file: ./secrets/nextauth_secret.txt
 
 volumes:
   pgdata:
   evidence_data:
+  backup_data:

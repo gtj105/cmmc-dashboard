@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# Docker secrets — NEVER commit
+secrets/
+
 # Dependencies
 node_modules/
 
