@@ -10,12 +10,14 @@ export async function GET() {
   const authError = requireRole(session, 'admin')
   if (authError) return authError
 
-  const [users, domains, practices, poamItems, practiceHistory] = await Promise.all([
+  const [users, domains, practices, poamItems, practiceHistory, overlayPacks, overlayValidations] = await Promise.all([
     sql`SELECT * FROM users ORDER BY id`,
     sql`SELECT * FROM domains ORDER BY id`,
     sql`SELECT * FROM practices ORDER BY id`,
     sql`SELECT * FROM poam_items ORDER BY id`,
     sql`SELECT * FROM practice_history ORDER BY id`,
+    sql`SELECT key, enabled FROM overlay_packs ORDER BY id`,
+    sql`SELECT * FROM overlay_validations ORDER BY id`,
   ])
 
   const payload = {
@@ -26,6 +28,8 @@ export async function GET() {
     practices,
     poam_items: poamItems,
     practice_history: practiceHistory,
+    overlay_pack_states: overlayPacks,
+    overlay_validations: overlayValidations,
   }
 
   const date = new Date().toISOString().slice(0, 10)

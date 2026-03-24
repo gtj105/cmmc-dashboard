@@ -9,6 +9,8 @@ type ExportPayload = {
   practices: Array<Record<string, unknown>>
   poam_items: Array<Record<string, unknown>>
   practice_history: Array<Record<string, unknown>>
+  overlay_pack_states?: Array<{ key: string; enabled: boolean }>
+  overlay_validations?: Array<Record<string, unknown>>
 }
 
 function validatePayload(payload: unknown): asserts payload is ExportPayload {
@@ -117,6 +119,34 @@ export async function POST(req: NextRequest) {
       await q`SELECT setval('practices_id_seq', COALESCE((SELECT MAX(id) FROM practices), 1))`
       await q`SELECT setval('poam_items_id_seq', COALESCE((SELECT MAX(id) FROM poam_items), 1))`
       await q`SELECT setval('practice_history_id_seq', COALESCE((SELECT MAX(id) FROM practice_history), 1))`
+
+      // Restore overlay pack enabled states (update by key — packs are seeded, not replaced)
+      if (parsed.overlay_pack_states?.length) {
+        for (const pack of parsed.overlay_pack_states) {
+          await q`UPDATE overlay_packs SET enabled = ${pack.enabled}, updated_at = NOW() WHERE key = ${pack.key}`
+        }
+      } else {
+        // Older backup without overlay state — reset all packs to disabled
+        await q`UPDATE overlay_packs SET enabled = false, updated_at = NOW()`
+      }
+
+      // Restore overlay validations
+      await q`TRUNCATE overlay_validations RESTART IDENTITY CASCADE`
+      for (const v of parsed.overlay_validations ?? []) {
+        await q`
+          INSERT INTO overlay_validations (id, overlay_mapping_id, validated, resolved_inheritance_type, validated_by, validated_at, validation_notes)
+          VALUES (
+            ${v.id as number}, ${v.overlay_mapping_id as number}, ${v.validated as boolean},
+            ${(v.resolved_inheritance_type as string | null) ?? null},
+            ${(v.validated_by as string | null) ?? null},
+            ${(v.validated_at as string | null) ?? null},
+            ${(v.validation_notes as string | null) ?? null}
+          )
+        `
+      }
+      if ((parsed.overlay_validations ?? []).length > 0) {
+        await q`SELECT setval('overlay_validations_id_seq', COALESCE((SELECT MAX(id) FROM overlay_validations), 1))`
+      }
     })
   } catch (err) {
     console.error('Import failed:', err)
