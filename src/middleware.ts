@@ -25,7 +25,10 @@ export function middleware(req: NextRequest) {
       path: '/',
       sameSite: 'strict',
       httpOnly: false,  // Frontend must read this cookie
-      secure: process.env.NODE_ENV === 'production',
+      // Only require Secure if explicitly running with HTTPS.
+      // NODE_ENV=production is true in Docker even over plain HTTP,
+      // so we check for the actual URL scheme instead.
+      secure: process.env.NEXTAUTH_URL?.startsWith('https') ?? false,
     })
   }
 
