@@ -1,7 +1,6 @@
 'use client'
 
-import type { FormEvent } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -27,7 +26,59 @@ interface PoamTableProps {
 export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) {
   const [items, setItems] = useState<PoamItem[]>(initialItems)
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editForm, setEditForm] = useState<PoamFormState>(createEmptyPoamForm())
+  const [editSaving, setEditSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
+
+  function toggleExpand(id: number) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function startEdit(item: PoamItem) {
+    setEditingId(item.id)
+    setEditForm({
+      finding: item.finding,
+      practiceId: item.practice_id ?? '',
+      owner: item.responsible_individual ?? '',
+      resources: item.resources_required ?? '',
+      date: item.scheduled_completion ? new Date(item.scheduled_completion).toISOString().slice(0, 10) : '',
+    })
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingId || !editForm.finding.trim()) return
+    setEditSaving(true)
+    try {
+      const res = await fetch(`/api/poam/${editingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          finding: editForm.finding,
+          practice_id: editForm.practiceId || null,
+          responsible_individual: editForm.owner || null,
+          resources_required: editForm.resources || null,
+          scheduled_completion: editForm.date || null,
+        }),
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setItems((prev) => prev.map((item) => (item.id === editingId ? updated : item)))
+        setEditingId(null)
+      } else {
+        showError('Failed to save changes.')
+      }
+    } catch {
+      showError('Network error — changes were not saved.')
+    }
+    setEditSaving(false)
+  }
   const [form, setForm] = useState<PoamFormState>(createEmptyPoamForm())
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -256,10 +307,29 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredItems.map((item) => (
-                <TableRow key={item.id}>
+              {filteredItems.map((item) => {
+                const isExpanded = expandedIds.has(item.id)
+                return (
+                <React.Fragment key={item.id}>
+                <TableRow>
                   <TableCell><span className="font-mono text-xs text-muted-foreground">{item.practice_id ?? '—'}</span></TableCell>
-                  <TableCell><span className="text-xs text-foreground">{item.finding}</span></TableCell>
+                  <TableCell>
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(item.id)}
+                      className="flex w-full items-start gap-2 text-left"
+                    >
+                      <svg
+                        className={`mt-0.5 h-3 w-3 shrink-0 text-muted-foreground/60 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                        viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"
+                      >
+                        <path d="M4 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <span className="line-clamp-1 text-xs text-foreground">
+                        {item.finding.split('\n')[0]}
+                      </span>
+                    </button>
+                  </TableCell>
                   <TableCell><span className="text-xs text-muted-foreground">{item.responsible_individual ?? '—'}</span></TableCell>
                   <TableCell><span className="text-xs text-muted-foreground">{formatScheduledCompletion(item.scheduled_completion)}</span></TableCell>
                   <TableCell>
@@ -293,18 +363,101 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
                     </Select>
                   </TableCell>
                   <TableCell>
-                    {canDelete && (
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="text-xs text-muted-foreground transition-colors hover:text-red-300"
-                        title="Delete"
-                      >
-                        ×
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {canEdit && (
+                        <button
+                          onClick={() => editingId === item.id ? setEditingId(null) : startEdit(item)}
+                          className="text-xs text-muted-foreground transition-colors hover:text-sky-300"
+                          title="Edit"
+                        >
+                          ✎
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="text-xs text-muted-foreground transition-colors hover:text-red-300"
+                          title="Delete"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                {isExpanded && editingId !== item.id && (
+                  <TableRow className="bg-card/20 hover:bg-card/20">
+                    <TableCell colSpan={7} className="px-6 py-4">
+                      <div className="space-y-3 border-l-2 border-sky-500/20 pl-4">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">Finding detail</p>
+                        <div className="space-y-2.5">
+                          {item.finding.split('\n\n').map((para, i) => (
+                            <p key={i} className="text-xs leading-6 text-foreground/90">{para}</p>
+                          ))}
+                        </div>
+                        {item.resources_required && (
+                          <div className="mt-3 border-t border-border/40 pt-3">
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60 mb-1">Resources required</p>
+                            <p className="text-xs leading-6 text-muted-foreground">{item.resources_required}</p>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {editingId === item.id && (
+                  <TableRow className="bg-card/20 hover:bg-card/20">
+                    <TableCell colSpan={7} className="p-4">
+                      <form onSubmit={handleEdit} className="space-y-3">
+                        <p className="command-kicker">Edit finding</p>
+                        <textarea
+                          required
+                          value={editForm.finding}
+                          onChange={(e) => setEditForm((prev) => ({ ...prev, finding: e.target.value }))}
+                          className="w-full resize-y border border-border/70 bg-background px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          rows={6}
+                          maxLength={5000}
+                        />
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <PracticePicker
+                            value={editForm.practiceId}
+                            onChange={(v) => setEditForm((prev) => ({ ...prev, practiceId: v }))}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Responsible individual"
+                            value={editForm.owner}
+                            maxLength={100}
+                            onChange={(e) => setEditForm((prev) => ({ ...prev, owner: e.target.value }))}
+                            className="border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Resources required"
+                            value={editForm.resources}
+                            maxLength={500}
+                            onChange={(e) => setEditForm((prev) => ({ ...prev, resources: e.target.value }))}
+                            className="border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                          <DatePicker
+                            value={editForm.date}
+                            onChange={(v) => setEditForm((prev) => ({ ...prev, date: v }))}
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" size="sm" variant="outline" className="h-8 border-border/80 bg-card/40 text-xs" onClick={() => setEditingId(null)}>
+                            Cancel
+                          </Button>
+                          <Button type="submit" size="sm" className="h-8 text-xs" disabled={editSaving}>
+                            {editSaving ? 'Saving…' : 'Save changes'}
+                          </Button>
+                        </div>
+                      </form>
+                    </TableCell>
+                  </TableRow>
+                )}
+                </React.Fragment>
+                )})}
             </TableBody>
           </Table>
         </div>
