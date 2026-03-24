@@ -1,7 +1,7 @@
 import { OVERLAY_PACK_STATUSES, type OverlayPackKey } from '../../src/lib/types'
 import { azureGovernmentMappings } from './azure-government-mappings'
 import { microsoftDefenderMappings } from './microsoft-defender-mappings'
-import { m365GccHighMappings } from './m365-gcc-high-mappings'
+import { gccHighMappings } from './gcc-high-mappings'
 import { microsoftPurviewMappings } from './microsoft-purview-mappings'
 import type { SeedOverlayPack } from './overlay-pack-helpers'
 
@@ -13,7 +13,7 @@ export const overlayPackSeeds: SeedOverlayPack[] = [
     status: OVERLAY_PACK_STATUSES[0],
     enabled: false,
     description: 'Microsoft 365 GCC High overlay pack sourced from the local gcc high vault placemat notes.',
-    mappings: m365GccHighMappings,
+    mappings: gccHighMappings,
   },
   {
     key: 'azure_government',
