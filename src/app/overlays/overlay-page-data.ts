@@ -110,7 +110,7 @@ export function validationStateLabel(
 ): string {
   if (inheritanceType === 'validation_required') {
     if (validated && resolvedInheritanceType) return `validated as ${resolvedInheritanceType}`
-    return 'validation required'
+    return 'verify config'
   }
   return 'not required'
 }
@@ -170,7 +170,7 @@ export function groupMappings(
     },
     {
       key: 'validation_required',
-      title: 'Validation required',
+      title: 'Verify config',
       note: 'Seeded from Microsoft guidance until the deployment is validated.',
       items: [],
     },
@@ -190,6 +190,6 @@ export function buildSummaryCards(summary: OverlaySummary | null) {
     { label: 'Customer-owned controls', value: summary?.customer_owned_controls ?? 0, tone: 'text-amber-300' },
     { label: 'Fully inherited controls', value: summary?.fully_inherited_controls ?? 0, tone: 'text-green-300' },
     { label: 'Shared controls', value: summary?.shared_controls ?? 0, tone: 'text-sky-300' },
-    { label: 'Validation required', value: summary?.validation_required_controls ?? 0, tone: 'text-red-300' },
+    { label: 'Verify config', value: summary?.validation_required_controls ?? 0, tone: 'text-red-300' },
   ]
 }

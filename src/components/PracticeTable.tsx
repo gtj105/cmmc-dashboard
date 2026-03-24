@@ -51,10 +51,10 @@ function isEffectivePractice(practice: TablePractice): practice is EffectivePrac
   return 'effective_inheritance_type' in practice
 }
 
-function ownershipLabel(practice: TablePractice): 'CSP' | 'Shared' | 'Validation required' | 'OSC' {
+function ownershipLabel(practice: TablePractice): 'CSP' | 'Shared' | 'Verify config' | 'OSC' {
   if (!isEffectivePractice(practice)) return 'OSC'
   if (practice.is_fully_inherited) return 'CSP'
-  if (practice.requires_validation) return 'Validation required'
+  if (practice.requires_validation) return 'Verify config'
   if (practice.is_shared_responsibility) return 'Shared'
   return 'OSC'
 }
@@ -62,7 +62,7 @@ function ownershipLabel(practice: TablePractice): 'CSP' | 'Shared' | 'Validation
 function ownershipTone(practice: TablePractice): string {
   const label = ownershipLabel(practice)
   if (label === 'CSP') return 'border-sky-950/70 bg-sky-950/15 text-sky-200'
-  if (label === 'Validation required') return 'border-amber-950/70 bg-amber-950/20 text-amber-200'
+  if (label === 'Verify config') return 'border-amber-950/70 bg-amber-950/20 text-amber-200'
   if (label === 'Shared') return 'border-border/70 bg-muted/20 text-muted-foreground'
   return 'border-emerald-950/60 bg-emerald-950/15 text-emerald-200'
 }

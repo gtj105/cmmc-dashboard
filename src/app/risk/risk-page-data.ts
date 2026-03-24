@@ -9,8 +9,8 @@ export interface RiskPractice extends EffectivePractice {
 export const RISK_STATUSES: Status[] = ['Not Started', 'In Progress', 'Implemented', 'Audit Ready']
 export const RISK_FRAMEWORKS: Framework[] = ['CMMC', 'ITAR']
 
-export function ownershipLabel(practice: RiskPractice): 'Shared' | 'Validation required' | 'OSC' {
-  if (practice.requires_validation) return 'Validation required'
+export function ownershipLabel(practice: RiskPractice): 'Shared' | 'Verify config' | 'OSC' {
+  if (practice.requires_validation) return 'Verify config'
   if (practice.is_shared_responsibility) return 'Shared'
   return 'OSC'
 }

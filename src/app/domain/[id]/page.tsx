@@ -71,7 +71,7 @@ export default async function DomainPage({ params }: Props) {
   const ownershipSegments = hasActiveOverlay ? [
     { label: 'CSP',            count: coverageTotals.csp_inherited,          bar: 'bg-sky-500/70',     text: 'text-sky-400' },
     { label: 'Shared',         count: residualTotals.partial,                 bar: 'bg-amber-400/60',   text: 'text-amber-400' },
-    { label: 'Validation req.', count: residualTotals.validation_required,    bar: 'bg-orange-500/60',  text: 'text-orange-400' },
+    { label: 'Verify config',   count: residualTotals.validation_required,    bar: 'bg-orange-500/60',  text: 'text-orange-400' },
     { label: 'OSC complete',   count: coverageTotals.osc_complete,            bar: 'bg-emerald-500/60', text: 'text-emerald-400' },
   ].filter((s) => s.count > 0) : []
 

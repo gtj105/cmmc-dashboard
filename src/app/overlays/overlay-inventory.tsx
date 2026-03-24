@@ -30,7 +30,7 @@ export default function OverlayInventory({
       <p className="command-kicker">Overlay inventory</p>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
         All four overlay packs can be toggled independently. They load as available but off by default, and
-        deployment-sensitive claims remain marked validation required until your organization confirms them.
+        deployment-sensitive claims remain marked verify config until your organization confirms them.
       </p>
       <div className="mt-4 space-y-3">
         {PACK_LAYOUT.map((packConfig) => {
@@ -96,7 +96,7 @@ export default function OverlayInventory({
               <div className="mt-3 grid gap-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground sm:grid-cols-4">
                 <span>{pack?.full_count ?? 0} full</span>
                 <span>{pack?.partial_count ?? 0} partial</span>
-                <span>{pack?.validation_required_count ?? 0} validation required</span>
+                <span>{pack?.validation_required_count ?? 0} verify config</span>
                 <span>{pack?.none_count ?? 0} none</span>
               </div>
             </button>

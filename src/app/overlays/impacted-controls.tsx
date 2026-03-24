@@ -61,7 +61,7 @@ export default function ImpactedControls({
           { key: 'all', label: 'All controls', count: impactedMappingsLength },
           { key: 'full', label: 'Fully inherited', count: impactedCounts.full },
           { key: 'partial', label: 'Partially inherited', count: impactedCounts.partial },
-          { key: 'validation_required', label: 'Validation required', count: impactedCounts.validation_required },
+          { key: 'validation_required', label: 'Verify config', count: impactedCounts.validation_required },
         ].map((filter) => (
           <button
             key={filter.key}
