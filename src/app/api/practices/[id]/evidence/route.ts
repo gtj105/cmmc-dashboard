@@ -9,6 +9,7 @@ import {
   validateFileType,
   writeEvidenceFileAt,
 } from '@/lib/evidence'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,6 +81,7 @@ export async function POST(
     }
     await sql`UPDATE practices SET evidence_exists = true WHERE practice_id = ${params.id}`
 
+    await audit({ action: 'evidence.uploaded', actor: session!.user.email ?? 'editor', target: params.id, ip: getClientIp(req.headers), details: label })
     return NextResponse.json(item, { status: 201 })
   }
 
@@ -97,5 +99,6 @@ export async function POST(
     RETURNING *
   `
   await sql`UPDATE practices SET evidence_exists = true WHERE practice_id = ${params.id}`
+  await audit({ action: 'evidence.uploaded', actor: session!.user.email ?? 'editor', target: params.id, ip: getClientIp(req.headers), details: label })
   return NextResponse.json(urlItem, { status: 201 })
 }

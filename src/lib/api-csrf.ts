@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 // ─────────────────────────────────────────────────────────────────
 // Server-side CSRF Validation
@@ -26,6 +27,14 @@ export function checkCsrf(req: NextRequest): NextResponse | null {
   const headerToken = req.headers.get(CSRF_HEADER)
 
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+    const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    logger.security('csrf.rejected', {
+      method,
+      path: req.nextUrl.pathname,
+      ip,
+      hasCookie: !!cookieToken,
+      hasHeader: !!headerToken,
+    })
     return NextResponse.json(
       { error: 'Invalid or missing CSRF token' },
       { status: 403 }

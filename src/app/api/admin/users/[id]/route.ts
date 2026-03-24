@@ -4,6 +4,7 @@ import { getAuthOptions, requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import { USER_ROLE_VALUES } from '@/lib/types'
+import { audit, getClientIp } from '@/lib/audit'
 
 export async function PATCH(
   req: NextRequest,
@@ -52,6 +53,7 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+    await audit({ action: 'user.role_changed', actor: session!.user.email ?? 'admin', target: updated.email, ip: getClientIp(req.headers), details: `Role changed to ${role}` })
     return NextResponse.json(updated)
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -81,12 +83,19 @@ export async function DELETE(
   }
 
   try {
+    const [user] = await sql<{ id: number; email: string }[]>`
+      SELECT id, email FROM users WHERE id = ${id}
+    `
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
     const [deleted] = await sql<{ id: number }[]>`
       DELETE FROM users WHERE id = ${id} RETURNING id
     `
     if (!deleted) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+    await audit({ action: 'user.deleted', actor: session!.user.email ?? 'admin', target: user.email, ip: getClientIp(_req.headers) })
     return new NextResponse(null, { status: 204 })
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

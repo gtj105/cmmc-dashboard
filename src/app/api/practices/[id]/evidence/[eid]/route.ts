@@ -4,6 +4,7 @@ import { getAuthOptions, requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import { deleteEvidenceFile } from '@/lib/evidence'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,5 +44,6 @@ export async function DELETE(
     `
   }
 
+  await audit({ action: 'evidence.deleted', actor: session!.user.email ?? 'editor', target: params.id, ip: getClientIp(_req.headers) })
   return new NextResponse(null, { status: 204 })
 }

@@ -4,6 +4,7 @@ import { getAuthOptions } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { audit, getClientIp } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
   const csrfError = checkCsrf(req)
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
   const newHash = await bcrypt.hash(newPassword, 10)
   await sql`UPDATE users SET password_hash = ${newHash} WHERE id = ${userId}`
 
+  await audit({ action: 'user.password_changed', actor: session!.user.email ?? 'unknown', ip: getClientIp(req.headers) })
   return new NextResponse(null, { status: 204 })
 }
 

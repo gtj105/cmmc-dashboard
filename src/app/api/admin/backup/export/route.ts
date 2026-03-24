@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
 import sql from '@/lib/db'
+import { audit, getClientIp } from '@/lib/audit'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(getAuthOptions())
   const authError = requireRole(session, 'admin')
   if (authError) return authError
@@ -35,6 +36,7 @@ export async function GET() {
   const date = new Date().toISOString().slice(0, 10)
   const filename = `cmmc-backup-${date}.json`
 
+  await audit({ action: 'backup.exported', actor: session!.user.email ?? 'admin', ip: getClientIp(req.headers) })
   return new NextResponse(JSON.stringify(payload, null, 2), {
     status: 200,
     headers: {

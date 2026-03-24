@@ -5,6 +5,7 @@ import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { USER_ROLE_VALUES } from '@/lib/types'
+import { audit, getClientIp } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
   const csrfError = checkCsrf(req)
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
       VALUES (${email.trim()}, ${passwordHash}, ${name.trim()}, ${role})
       RETURNING id, email, name, role, created_at
     `
+    await audit({ action: 'user.created', actor: session!.user.email ?? 'admin', target: email, ip: getClientIp(req.headers), details: `Role: ${role}` })
     return NextResponse.json(created, { status: 201 })
   } catch (err) {
     const pg = err as { code?: string }

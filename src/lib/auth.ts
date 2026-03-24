@@ -3,6 +3,8 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import sql from '@/lib/db'
+import { logger } from '@/lib/logger'
+import { audit } from '@/lib/audit'
 import type { UserRole } from '@/lib/types'
 
 const DUMMY_HASH = '$2b$10$dummy.hash.for.timing.protection.placeholder.xxxxx'
@@ -101,6 +103,7 @@ export function getAuthOptions(): NextAuthOptions {
           const email = credentials.email.toLowerCase().trim()
 
           if (isLockedOut(email)) {
+            audit({ action: 'login.locked_out', actor: email, details: `Account locked for ${LOCKOUT_MS / 60000} minutes` })
             throw new Error('TooManyAttempts')
           }
 
@@ -110,14 +113,22 @@ export function getAuthOptions(): NextAuthOptions {
           if (!user) {
             await bcrypt.compare(credentials.password, DUMMY_HASH)
             recordFailure(email)
+            audit({ action: 'login.failed', actor: email, details: 'Unknown email' })
             return null
           }
           const valid = await bcrypt.compare(credentials.password, user.password_hash)
           if (!valid) {
             recordFailure(email)
+            const rec = loginAttempts.get(email)
+            audit({
+              action: 'login.failed',
+              actor: email,
+              details: `Invalid password (attempt ${rec?.count ?? 1}/${MAX_ATTEMPTS})`,
+            })
             return null
           }
           clearFailures(email)
+          audit({ action: 'login.success', actor: email, details: `Role: ${user.role}` })
           return { id: String(user.id), email: user.email, name: user.name, role: normalizeRole(user.role) }
         },
       }),
@@ -138,6 +149,15 @@ export function getAuthOptions(): NextAuthOptions {
           session.user.role = normalizeRole(token.role)
         }
         return session
+      },
+    },
+    events: {
+      async signOut(message) {
+        const token = 'token' in message ? message.token : undefined
+        const email = (token as Record<string, unknown>)?.email as string | undefined
+        if (email) {
+          logger.info('auth.signout', { actor: email })
+        }
       },
     },
   }

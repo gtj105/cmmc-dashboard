@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
+import { audit, getClientIp } from '@/lib/audit'
 
 type ExportPayload = {
   users: Array<Record<string, unknown>>
@@ -157,5 +158,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Import failed. The database was not modified.' }, { status: 500 })
   }
 
+  await audit({ action: 'backup.imported', actor: session!.user.email ?? 'admin', ip: getClientIp(req.headers), details: 'Full data restore' })
   return NextResponse.json({ ok: true, message: 'Restore complete.' })
 }

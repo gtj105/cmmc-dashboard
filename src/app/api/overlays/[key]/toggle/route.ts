@@ -6,6 +6,7 @@ import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import { fetchOverlayPackByKey, toggleOverlayPackEnabled } from '@/lib/overlays'
 import { OVERLAY_PACK_KEYS, type OverlayPackKey } from '@/lib/types'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +39,7 @@ export async function POST(
   const updated = await toggleOverlayPackEnabled(sql, key, desiredEnabled)
 
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  await audit({ action: 'overlay.toggled', actor: session!.user.email ?? 'editor', target: key, ip: getClientIp(req.headers), details: `Enabled: ${desiredEnabled}` })
   revalidatePath('/overlays')
   revalidatePath('/overview')
   revalidatePath('/risk')
