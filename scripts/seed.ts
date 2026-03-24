@@ -125,7 +125,7 @@ async function seed() {
     CREATE TABLE IF NOT EXISTS overlay_mappings (
       id SERIAL PRIMARY KEY,
       overlay_pack_id INTEGER NOT NULL REFERENCES overlay_packs(id) ON DELETE CASCADE,
-      practice_id TEXT NOT NULL REFERENCES practices(practice_id) ON DELETE CASCADE,
+      practice_id TEXT NOT NULL,
       inheritance_type TEXT NOT NULL CHECK (inheritance_type IN (${inheritanceTypeCheckList})),
       source_title TEXT NOT NULL,
       source_url TEXT NOT NULL,
