@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
+import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import type { PoamStatus } from '@/lib/types'
 
@@ -12,6 +13,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const csrfError = checkCsrf(req)
+  if (csrfError) return csrfError
+
   const session = await getServerSession(getAuthOptions())
   const authError = requireRole(session, 'editor')
   if (authError) return authError
@@ -66,6 +70,9 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const csrfError = checkCsrf(_req)
+  if (csrfError) return csrfError
+
   const session = await getServerSession(getAuthOptions())
   const authError = requireRole(session, 'admin')
   if (authError) return authError

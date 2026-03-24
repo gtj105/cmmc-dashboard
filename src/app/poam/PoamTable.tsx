@@ -1,6 +1,7 @@
 'use client'
 
 import React, { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { apiFetch } from '@/lib/api-client'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -56,7 +57,7 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
     if (!editingId || !editForm.finding.trim()) return
     setEditSaving(true)
     try {
-      const res = await fetch(`/api/poam/${editingId}`, {
+      const res = await apiFetch(`/api/poam/${editingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -100,7 +101,7 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
     const previous = items.find((i) => i.id === id)?.status
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item)))
     try {
-      const res = await fetch(`/api/poam/${id}`, {
+      const res = await apiFetch(`/api/poam/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -120,7 +121,7 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
     const previous = items.find((i) => i.id === id)?.milestone_progress
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, milestone_progress: progress } : item)))
     try {
-      const res = await fetch(`/api/poam/${id}`, {
+      const res = await apiFetch(`/api/poam/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ milestone_progress: progress }),
@@ -140,7 +141,7 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
     if (!canEdit || !form.finding.trim()) return
     setSaving(true)
     try {
-      const res = await fetch('/api/poam', {
+      const res = await apiFetch('/api/poam', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -168,7 +169,7 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
   async function handleDelete(id: number) {
     if (!canDelete) return
     try {
-      const res = await fetch(`/api/poam/${id}`, { method: 'DELETE' })
+      const res = await apiFetch(`/api/poam/${id}`, { method: 'DELETE' })
       if (res.ok) {
         setItems((prev) => prev.filter((item) => item.id !== id))
       } else {

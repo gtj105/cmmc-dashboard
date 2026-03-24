@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { apiFetch } from '@/lib/api-client'
 import { useRouter } from 'next/navigation'
 import type { InheritanceType, OverlayPackKey, OverlayPackStatus } from '@/lib/types'
 
@@ -171,7 +172,7 @@ export function useOverlayPageData(status: string) {
 
   async function loadPacks(preferredKey?: OverlayPackKey) {
     const requestId = ++packRequestIdRef.current
-    const res = await fetch('/api/overlays')
+    const res = await apiFetch('/api/overlays')
     const data = await res.json()
     if (!res.ok) {
       throw new Error(data?.error ?? 'Failed to load overlays')
@@ -196,7 +197,7 @@ export function useOverlayPageData(status: string) {
     mappingRequestKeyRef.current = key
     setMappingsLoading(true)
     setMappings([])
-    const res = await fetch(`/api/overlays/${key}/mappings`)
+    const res = await apiFetch(`/api/overlays/${key}/mappings`)
     const data: OverlayMappingsResponse | { error?: string } = await res.json()
     if (!res.ok) {
       if (mappingRequestKeyRef.current === key) setMappingsLoading(false)
@@ -307,7 +308,7 @@ export function useOverlayPageData(status: string) {
     setRefreshingKey(key)
     setError(null)
     try {
-      const res = await fetch(`/api/overlays/${key}/toggle`, {
+      const res = await apiFetch(`/api/overlays/${key}/toggle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled }),

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
+import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -23,6 +24,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const csrfError = checkCsrf(req)
+  if (csrfError) return csrfError
+
   const session = await getServerSession(getAuthOptions())
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

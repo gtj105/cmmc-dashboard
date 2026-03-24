@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { apiFetch } from '@/lib/api-client'
 import type { EvidenceItem } from '@/lib/types'
 import { ASSESSMENT_OBJECTIVES } from '@/lib/assessment-objectives'
 import { ObjectiveStatusBadge, type ObjectiveStatus } from '@/components/PracticeTable'
@@ -77,7 +78,7 @@ export function EvidenceDrawer({
   async function handleSetObjectiveStatus(letter: string, status: ObjectiveStatus) {
     if (!practiceId) return
     setSavingObj(letter)
-    const res = await fetch(`/api/practices/${practiceId}/objectives`, {
+    const res = await apiFetch(`/api/practices/${practiceId}/objectives`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ letter, status }),
@@ -92,7 +93,7 @@ export function EvidenceDrawer({
     e.preventDefault()
     if (!practiceId || !label.trim() || !url.trim()) return
     setUploading(true); setError(null)
-    const res = await fetch(`/api/practices/${practiceId}/evidence`, {
+    const res = await apiFetch(`/api/practices/${practiceId}/evidence`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ label: label.trim(), url: url.trim() }),
@@ -117,7 +118,7 @@ export function EvidenceDrawer({
     const formData = new FormData()
     formData.append('label', label.trim())
     formData.append('file', file)
-    const res = await fetch(`/api/practices/${practiceId}/evidence`, {
+    const res = await apiFetch(`/api/practices/${practiceId}/evidence`, {
       method: 'POST',
       body: formData,
     })
@@ -136,7 +137,7 @@ export function EvidenceDrawer({
 
   async function handleDelete(id: number) {
     if (!practiceId) return
-    const res = await fetch(`/api/practices/${practiceId}/evidence/${id}`, { method: 'DELETE' })
+    const res = await apiFetch(`/api/practices/${practiceId}/evidence/${id}`, { method: 'DELETE' })
     if (res.ok || res.status === 204) {
       setItems((prev) => prev.filter((item) => item.id !== id))
       onCountChange(practiceId, -1)

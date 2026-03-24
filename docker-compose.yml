@@ -41,6 +41,12 @@ services:
       - evidence_data:/data/evidence
     secrets:
       - nextauth_secret
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     security_opt:
       - no-new-privileges:true
     logging:
@@ -57,7 +63,8 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     read_only: true
     tmpfs:
       - /var/cache/nginx

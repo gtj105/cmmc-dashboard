@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
+import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 
 type ExportPayload = {
@@ -23,6 +24,9 @@ function validatePayload(payload: unknown): asserts payload is ExportPayload {
 }
 
 export async function POST(req: NextRequest) {
+  const csrfError = checkCsrf(req)
+  if (csrfError) return csrfError
+
   const session = await getServerSession(getAuthOptions())
   const authError = requireRole(session, 'admin')
   if (authError) return authError

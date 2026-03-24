@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { apiFetch } from '@/lib/api-client'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import AppShell from '@/components/layout/AppShell'
@@ -36,7 +37,7 @@ export default function SettingsPage() {
 
     setSaving(true)
     try {
-      const res = await fetch('/api/user/password', {
+      const res = await apiFetch('/api/user/password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentPassword, newPassword }),

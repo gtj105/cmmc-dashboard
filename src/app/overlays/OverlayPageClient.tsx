@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { apiFetch } from '@/lib/api-client'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import type { OverlayPackKey } from '@/lib/types'
@@ -76,7 +77,7 @@ export function OverlayPageClient({
     setRefreshingKey(key)
     setError(null)
     try {
-      const res = await fetch(`/api/overlays/${key}/toggle`, {
+      const res = await apiFetch(`/api/overlays/${key}/toggle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled }),
@@ -84,7 +85,7 @@ export function OverlayPageClient({
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error ?? 'Failed to toggle overlay')
 
-      const packsRes = await fetch('/api/overlays')
+      const packsRes = await apiFetch('/api/overlays')
       const packsData = await packsRes.json()
       setPacks(packsData.packs)
       setSummary(packsData.summary)

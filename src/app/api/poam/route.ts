@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // GET removed — POAM page is now server-rendered; initial data fetched directly via sql
 import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
+import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import type { PoamStatus } from '@/lib/types'
 
@@ -10,6 +11,9 @@ export const dynamic = 'force-dynamic'
 const VALID_STATUSES: PoamStatus[] = ['Open', 'In Progress', 'Closed']
 
 export async function POST(req: NextRequest) {
+  const csrfError = checkCsrf(req)
+  if (csrfError) return csrfError
+
   const session = await getServerSession(getAuthOptions())
   const authError = requireRole(session, 'editor')
   if (authError) return authError

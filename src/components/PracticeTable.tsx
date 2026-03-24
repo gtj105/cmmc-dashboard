@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+import { apiFetch } from '@/lib/api-client'
 import type { EffectivePractice, Practice, Status, RiskLevel } from '@/lib/types'
 import { StatusBadge } from '@/components/StatusBadge'
 import { RiskBadge } from '@/components/RiskBadge'
@@ -72,7 +73,7 @@ function isFullyInheritedReadOnly(practice: TablePractice): boolean {
 }
 
 async function patchPractice(id: number, updates: Record<string, unknown>) {
-  const res = await fetch(`/api/practices/${id}`, {
+  const res = await apiFetch(`/api/practices/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),
@@ -103,7 +104,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
     })
     if (!objectiveStatuses[practiceId]) {
       try {
-        const res = await fetch(`/api/practices/${practiceId}/objectives`)
+        const res = await apiFetch(`/api/practices/${practiceId}/objectives`)
         if (res.ok) {
           const data = await res.json()
           setObjectiveStatuses((prev) => ({ ...prev, [practiceId]: data }))

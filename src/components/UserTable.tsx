@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { apiFetch } from '@/lib/api-client'
 
 export interface UserRow {
   id: number
@@ -48,7 +49,7 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
   async function handleDelete(userId: number) {
     setDeleting(userId)
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
+      const res = await apiFetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
       if (res.ok || res.status === 204) {
         setRows((prev) => prev.filter((r) => r.id !== userId))
       } else {
@@ -68,7 +69,7 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
     setCreateError(null)
     setCreating(true)
     try {
-      const res = await fetch('/api/admin/users', {
+      const res = await apiFetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(createForm),
@@ -98,7 +99,7 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
     setPending(userId)
 
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
+      const res = await apiFetch(`/api/admin/users/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),

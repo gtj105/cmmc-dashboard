@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
+import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { USER_ROLE_VALUES } from '@/lib/types'
 
 export async function POST(req: NextRequest) {
+  const csrfError = checkCsrf(req)
+  if (csrfError) return csrfError
+
   const session = await getServerSession(getAuthOptions())
   const authError = requireRole(session, 'admin')
   if (authError) return authError

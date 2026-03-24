@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
+import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import { fetchOverlayPackByKey, toggleOverlayPackEnabled } from '@/lib/overlays'
 import { OVERLAY_PACK_KEYS, type OverlayPackKey } from '@/lib/types'
@@ -16,6 +17,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { key: string } },
 ) {
+  const csrfError = checkCsrf(req)
+  if (csrfError) return csrfError
+
   const session = await getServerSession(getAuthOptions())
   const authError = requireRole(session, 'editor')
   if (authError) return authError

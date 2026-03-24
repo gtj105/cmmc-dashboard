@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { apiFetch } from '@/lib/api-client'
 
 type Phase = 'idle' | 'confirm' | 'working' | 'done' | 'error'
 
@@ -14,7 +15,7 @@ export default function BackupPanel() {
   async function handleExport() {
     setExportWorking(true)
     try {
-      const res = await fetch('/api/admin/backup/export')
+      const res = await apiFetch('/api/admin/backup/export')
       if (!res.ok) throw new Error('Export failed')
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
@@ -49,7 +50,7 @@ export default function BackupPanel() {
     form.append('file', selectedFile)
 
     try {
-      const res = await fetch('/api/admin/backup/import', { method: 'POST', body: form })
+      const res = await apiFetch('/api/admin/backup/import', { method: 'POST', body: form })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
         setImportPhase('done')
