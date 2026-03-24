@@ -69,6 +69,11 @@ export function EvidenceDrawer({
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   async function handleSetObjectiveStatus(letter: string, status: ObjectiveStatus) {
     if (!practiceId) return
     setSavingObj(letter)
@@ -143,6 +148,8 @@ export function EvidenceDrawer({
   const objectives = practiceId ? ASSESSMENT_OBJECTIVES[practiceId] : null
 
   return (
+    <>
+    <div className="fixed inset-0 z-40 bg-background/60 backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
     <div className="drawer-slide-in fixed inset-y-0 right-0 z-50 flex w-[480px] flex-col border-l border-sky-500/30 bg-background shadow-2xl">
       {/* Header */}
       <div className="flex items-start justify-between border-b border-border px-4 py-4">
@@ -371,5 +378,6 @@ export function EvidenceDrawer({
         </div>
       )}
     </div>
+    </>
   )
 }
