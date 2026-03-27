@@ -6,8 +6,8 @@ services:
       POSTGRES_DB: cmmc_db
       POSTGRES_USER: cmmc_user
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-    ports:
-      - "127.0.0.1:5432:5432"
+    # No host port binding — app connects via Docker internal network (db:5432).
+    # To inspect the DB from the host: docker compose exec db psql -U cmmc_user -d cmmc_db
     volumes:
       - pgdata:/var/lib/postgresql/data
     secrets:

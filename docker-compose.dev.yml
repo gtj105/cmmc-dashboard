@@ -18,6 +18,9 @@ services:
   db:
     volumes:
       - pgdata-dev:/var/lib/postgresql/data
+    # Expose on 5433 (not 5432) so both runtime and dev can run simultaneously.
+    # Use this to connect DB tools (TablePlus, psql, etc.) to the dev database.
+    # The base compose intentionally has no host port binding, so this is additive only.
     ports:
       - "127.0.0.1:5433:5432"
 
