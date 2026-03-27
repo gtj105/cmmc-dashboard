@@ -1,0 +1,50 @@
+# docker-compose.ssl.yml — TLS override for production deployments
+#
+# Usage (first-time cert issuance):
+#   docker compose -f docker-compose.yml -f docker-compose.ssl.yml up -d
+#
+# Certs are obtained via Certbot/Let's Encrypt. The nginx service uses
+# nginx-ssl.conf which redirects port 80 → 443 and serves HTTPS only.
+#
+# Prerequisites:
+#   1. DNS A record pointing your domain to this server's public IP
+#   2. DOMAIN=yourdomain.com set in your .env or environment
+#   3. Run the one-time cert issuance command below before starting the stack:
+#
+#   docker run --rm -v ./certs:/etc/letsencrypt -v ./certs/webroot:/var/www/certbot \
+#     certbot/certbot certonly --webroot -w /var/www/certbot \
+#     -d $DOMAIN --agree-tos --no-eff-email -m your@email.com
+#
+# Cert renewal (run from cron or manually):
+#   docker compose -f docker-compose.yml -f docker-compose.ssl.yml run --rm certbot renew
+
+services:
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/letsencrypt:ro
+      - certbot_webroot:/var/www/certbot:ro
+    # Read-only FS requires explicit tmpfs for nginx runtime dirs
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+
+  app:
+    environment:
+      # Override so NextAuth generates correct callback URLs
+      NEXTAUTH_URL: https://${DOMAIN:?Set DOMAIN in .env, e.g. DOMAIN=cmmc.example.com}
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: "no"
+    volumes:
+      - ./certs:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+    # Default command for renewal; override at CLI for initial issuance
+    command: renew --quiet
+
+volumes:
+  certbot_webroot:

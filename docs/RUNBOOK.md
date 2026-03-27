@@ -250,6 +250,62 @@ bash ./scripts/import-runtime.sh --file exports/export.json --wipe
 
 ---
 
-## 9. Rule of Thumb
+## 9. HTTPS / TLS (Production)
+
+The app ships with two nginx configs:
+
+- `nginx.conf` — HTTP only (port 80), for local use or behind a TLS-terminating load balancer
+- `nginx-ssl.conf` — HTTPS (ports 80 + 443), Let's Encrypt certs, HSTS, OCSP stapling
+
+### First-time cert issuance
+
+1. Point your domain's DNS A record at the server.
+2. Set `DOMAIN` in `.env`:
+   ```
+   DOMAIN=cmmc.example.com
+   ```
+3. Issue the cert (port 80 must be open to the internet):
+   ```bash
+   docker run --rm \
+     -v ./certs:/etc/letsencrypt \
+     -v ./certs/webroot:/var/www/certbot \
+     -p 80:80 \
+     certbot/certbot certonly --standalone \
+     -d $DOMAIN --agree-tos --no-eff-email -m your@email.com
+   ```
+4. Start the SSL stack:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.ssl.yml up -d
+   ```
+
+### Cert renewal
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.ssl.yml run --rm certbot renew
+docker compose -f docker-compose.yml -f docker-compose.ssl.yml restart nginx
+```
+
+Add this to cron (runs twice daily per Let's Encrypt recommendation):
+
+```
+0 3,15 * * * cd /path/to/dashboard && \
+  docker compose -f docker-compose.yml -f docker-compose.ssl.yml run --rm certbot renew --quiet && \
+  docker compose -f docker-compose.yml -f docker-compose.ssl.yml restart nginx
+```
+
+### Self-signed cert (air-gapped / no public DNS)
+
+```bash
+mkdir -p certs/live/cmmc
+openssl req -x509 -nodes -days 3650 -newkey rsa:4096 \
+  -keyout certs/live/cmmc/privkey.pem \
+  -out certs/live/cmmc/fullchain.pem \
+  -subj "/CN=cmmc.internal"
+docker compose -f docker-compose.yml -f docker-compose.ssl.yml up -d
+```
+
+---
+
+## 10. Rule of Thumb
 
 This dashboard is intentionally simple. Use the CLI scripts for infrequent admin tasks. Do not build a management UI unless those tasks become frequent enough to justify the extra surface area.
