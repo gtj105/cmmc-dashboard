@@ -29,10 +29,10 @@ export async function POST(req: NextRequest) {
   const passwordHash = await bcrypt.hash(password, 10)
 
   try {
-    const [created] = await sql<{ id: number; email: string; name: string; role: string; created_at: string }[]>`
-      INSERT INTO users (email, password_hash, name, role)
-      VALUES (${email.trim()}, ${passwordHash}, ${name.trim()}, ${role})
-      RETURNING id, email, name, role, created_at
+    const [created] = await sql<{ id: number; email: string; name: string; role: string; must_change_password: boolean; created_at: string }[]>`
+      INSERT INTO users (email, password_hash, name, role, must_change_password)
+      VALUES (${email.trim()}, ${passwordHash}, ${name.trim()}, ${role}, true)
+      RETURNING id, email, name, role, must_change_password, created_at
     `
     await audit({ action: 'user.created', actor: session!.user.email ?? 'admin', target: email, ip: getClientIp(req.headers), details: `Role: ${role}` })
     return NextResponse.json(created, { status: 201 })

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (authError) return authError
 
   const [users, domains, practices, poamItems, practiceHistory, overlayPacks, overlayValidations] = await Promise.all([
-    sql`SELECT * FROM users ORDER BY id`,
+    sql`SELECT id, email, name, role, must_change_password, created_at FROM users ORDER BY id`,
     sql`SELECT * FROM domains ORDER BY id`,
     sql`SELECT * FROM practices ORDER BY id`,
     sql`SELECT * FROM poam_items ORDER BY id`,
@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
   const payload = {
     exported_at: new Date().toISOString(),
     exported_by: (session!.user as { email?: string }).email ?? 'unknown',
+    // password_hash intentionally excluded — users must reset passwords after a restore
     users,
     domains,
     practices,

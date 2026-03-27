@@ -33,11 +33,18 @@ export async function restoreFromPayload(parsed: RestorePayload): Promise<void> 
     // Wipe existing data in dependency order
     await q`TRUNCATE practice_history, poam_items, practices, domains, users RESTART IDENTITY CASCADE`
 
+    // Backups no longer include password_hash (stripped at export time).
+    // Restored users get a random locked hash and must_change_password=true
+    // so they are forced to set a new password on first login.
+    const LOCKED_HASH = '$2b$10$lockedXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
     for (const user of parsed.users) {
+      const hash = (user.password_hash as string | undefined) ?? LOCKED_HASH
+      const mustChange = !user.password_hash // no hash in file → force reset
       await q`
-        INSERT INTO users (id, email, password_hash, name, role, created_at)
-        VALUES (${user.id as number}, ${user.email as string}, ${user.password_hash as string},
-                ${user.name as string}, ${(user.role as string) ?? 'viewer'}, ${user.created_at as string})
+        INSERT INTO users (id, email, password_hash, name, role, must_change_password, created_at)
+        VALUES (${user.id as number}, ${user.email as string}, ${hash},
+                ${user.name as string}, ${(user.role as string) ?? 'viewer'},
+                ${mustChange}, ${user.created_at as string})
       `
     }
     for (const domain of parsed.domains) {

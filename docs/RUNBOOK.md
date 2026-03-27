@@ -63,6 +63,8 @@ docker compose exec app npm run create-user -- --email viewer@example.com --name
 docker compose exec app npm run create-user -- --email editor@example.com --name "Editor" --role editor
 ```
 
+New users created this way (or via the admin UI) have `must_change_password = true`. On their first login they are redirected to `/set-password` and cannot access the dashboard until they set a permanent password. Share the temporary password you specified out-of-band (Signal, 1Password, etc).
+
 ### List users
 
 ```bash
@@ -89,7 +91,7 @@ bash ./scripts/export-runtime.sh
 
 Output lands in `./exports/` on the host.
 
-The export contains: `users`, `domains`, `practices`, `poam_items`, `practice_history`
+The export contains: `users` (without `password_hash`), `domains`, `practices`, `poam_items`, `practice_history`. After a restore, all users have `must_change_password = true` and must set a new password on first login.
 
 ### Import from a JSON export
 

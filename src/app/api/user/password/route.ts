@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
   if (!valid) return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 })
 
   const newHash = await bcrypt.hash(newPassword, 10)
-  await sql`UPDATE users SET password_hash = ${newHash} WHERE id = ${userId}`
+  // Also clear must_change_password in case this is a first-login reset
+  await sql`UPDATE users SET password_hash = ${newHash}, must_change_password = false WHERE id = ${userId}`
 
   await audit({ action: 'user.password_changed', actor: session!.user.email ?? 'unknown', ip: getClientIp(req.headers) })
   return new NextResponse(null, { status: 204 })

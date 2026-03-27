@@ -2,12 +2,17 @@ import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { randomUUID } from 'crypto'
 import sql from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { audit } from '@/lib/audit'
+import { revokeToken } from '@/lib/token-revocation'
 import type { UserRole } from '@/lib/types'
 
 const DUMMY_HASH = '$2b$10$dummy.hash.for.timing.protection.placeholder.xxxxx'
+
+// JWT maxAge — tokens are valid for 24 hours
+const JWT_MAX_AGE_SECONDS = 24 * 60 * 60
 
 // ---------------------------------------------------------------------------
 // In-memory login rate limiter (per email address)
@@ -90,6 +95,7 @@ function getNextAuthSecret(): string {
 export function getAuthOptions(): NextAuthOptions {
   return {
     secret: getNextAuthSecret(),
+    session: { strategy: 'jwt', maxAge: JWT_MAX_AGE_SECONDS },
     providers: [
       CredentialsProvider({
         name: 'credentials',
@@ -108,7 +114,7 @@ export function getAuthOptions(): NextAuthOptions {
           }
 
           const [user] = await sql`
-            SELECT id, email, password_hash, name, role FROM users WHERE email = ${email}
+            SELECT id, email, password_hash, name, role, must_change_password FROM users WHERE email = ${email}
           `
           if (!user) {
             await bcrypt.compare(credentials.password, DUMMY_HASH)
@@ -129,17 +135,26 @@ export function getAuthOptions(): NextAuthOptions {
           }
           clearFailures(email)
           audit({ action: 'login.success', actor: email, details: `Role: ${user.role}` })
-          return { id: String(user.id), email: user.email, name: user.name, role: normalizeRole(user.role) }
+          return {
+            id: String(user.id),
+            email: user.email,
+            name: user.name,
+            role: normalizeRole(user.role),
+            mustChangePassword: Boolean(user.must_change_password),
+          }
         },
       }),
     ],
-    session: { strategy: 'jwt' },
     pages: { signIn: '/login', error: '/login' },
     callbacks: {
       async jwt({ token, user }) {
         if (user) {
+          // Assign a unique jti on first sign-in so we can revoke this token later
+          token.jti = randomUUID()
           token.id = user.id
           token.role = normalizeRole('role' in user ? user.role : undefined)
+          token.mustChangePassword = 'mustChangePassword' in user ? Boolean(user.mustChangePassword) : false
+          token.expiresAt = Math.floor(Date.now() / 1000) + JWT_MAX_AGE_SECONDS
         }
         return token
       },
@@ -147,14 +162,27 @@ export function getAuthOptions(): NextAuthOptions {
         if (session.user) {
           session.user.id = token.id as string
           session.user.role = normalizeRole(token.role)
+          ;(session.user as Record<string, unknown>).mustChangePassword = token.mustChangePassword ?? false
+          ;(session.user as Record<string, unknown>).jti = token.jti
         }
         return session
       },
     },
     events: {
       async signOut(message) {
+        // Revoke the JWT so it cannot be reused before its natural expiry
         const token = 'token' in message ? message.token : undefined
+        const jti = (token as Record<string, unknown>)?.jti as string | undefined
+        const expiresAt = (token as Record<string, unknown>)?.expiresAt as number | undefined
         const email = (token as Record<string, unknown>)?.email as string | undefined
+
+        if (jti && expiresAt) {
+          try {
+            await revokeToken(jti, new Date(expiresAt * 1000))
+          } catch {
+            // Non-fatal — token will expire naturally
+          }
+        }
         if (email) {
           logger.info('auth.signout', { actor: email })
         }

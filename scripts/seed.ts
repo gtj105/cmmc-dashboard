@@ -100,12 +100,23 @@ async function seed() {
     )
   `)
 
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT false`
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT`
   await sql.unsafe(`UPDATE users SET role = '${USER_ROLE_VALUES[0]}' WHERE role IS NULL OR role NOT IN (${userRoleCheckList})`)
   await sql.unsafe(`ALTER TABLE users ALTER COLUMN role SET DEFAULT '${USER_ROLE_VALUES[0]}'`)
   await sql`ALTER TABLE users ALTER COLUMN role SET NOT NULL`
   await sql`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`
   await sql.unsafe(`ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN (${userRoleCheckList}))`)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS revoked_tokens (
+      jti TEXT PRIMARY KEY,
+      revoked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NOT NULL
+    )
+  `
+  // index so expired-token cleanup stays fast
+  await sql`CREATE INDEX IF NOT EXISTS revoked_tokens_expires_idx ON revoked_tokens (expires_at)`
 
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS overlay_packs (
@@ -503,8 +514,8 @@ async function seed() {
   console.log('Creating admin user...')
   const passwordHash = await bcrypt.hash('admin', 10)
   await sql`
-    INSERT INTO users (email, password_hash, name, role)
-    VALUES ('admin@localhost', ${passwordHash}, 'Admin', 'admin')
+    INSERT INTO users (email, password_hash, name, role, must_change_password)
+    VALUES ('admin@localhost', ${passwordHash}, 'Admin', 'admin', false)
   `
 
   // ── Verify counts ──
