@@ -78,7 +78,14 @@ python3 -m unittest discover -s tests -v
 Or target specific suites:
 
 ```bash
-python3 -m unittest tests.test_deployment_config tests.test_qa_edge_case_tooling -v
+# Deployment config (NEXTAUTH_URL, HOSTNAME, CSRF, Docker env)
+python3 -m unittest tests.test_deployment_config -v
+
+# SPRS weights, baseline.json, migration alignment
+python3 -m unittest tests.test_data_invariants -v
+
+# Auth flow (signOut callbackUrl, redirect:false, JWT strategy)
+python3 -m unittest tests.test_auth_flow_config -v
 ```
 
 ---
