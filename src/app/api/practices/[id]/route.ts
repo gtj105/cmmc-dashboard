@@ -3,12 +3,9 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
-import type { Status, RiskLevel } from '@/lib/types'
+import { parsePracticePatch, validationError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
-
-const VALID_STATUSES: Status[] = ['Not Started', 'In Progress', 'Implemented', 'Audit Ready']
-const VALID_RISKS: RiskLevel[] = ['Low', 'Medium', 'High', 'Critical']
 
 export async function PATCH(
   req: NextRequest,
@@ -24,23 +21,25 @@ export async function PATCH(
   const id = parseInt(params.id)
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
-  const body = await req.json()
-  const { status, risk_level, evidence_exists, owner, due_date, notes } = body
+  let rawBody: unknown
+  try {
+    rawBody = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
 
-  if (status !== undefined && !VALID_STATUSES.includes(status)) {
-    return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
-  }
-  if (risk_level !== undefined && !VALID_RISKS.includes(risk_level)) {
-    return NextResponse.json({ error: 'Invalid risk_level' }, { status: 400 })
-  }
+  const parsed = parsePracticePatch(rawBody)
+  if (!parsed.success) return validationError(parsed.error)
+  const data = parsed.data
 
   const updates: Record<string, unknown> = {}
-  if ('status' in body) updates.status = status
-  if ('risk_level' in body) updates.risk_level = risk_level
-  if ('evidence_exists' in body) updates.evidence_exists = evidence_exists
-  if ('owner' in body) updates.owner = owner
-  if ('due_date' in body) updates.due_date = due_date
-  if ('notes' in body) updates.notes = notes
+  const body = rawBody as Record<string, unknown>
+  if ('status' in body)          updates.status          = data.status
+  if ('risk_level' in body)      updates.risk_level      = data.risk_level
+  if ('evidence_exists' in body) updates.evidence_exists = data.evidence_exists
+  if ('owner' in body)           updates.owner           = data.owner
+  if ('due_date' in body)        updates.due_date        = data.due_date
+  if ('notes' in body)           updates.notes           = data.notes
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
@@ -61,7 +60,6 @@ export async function PATCH(
     `
     if (!updated) return
 
-    // Write history entries for changed fields
     const changedBy = actor.email ?? actor.name ?? 'unknown'
     for (const [field, newVal] of Object.entries(updates)) {
       const oldVal = (before as Record<string, unknown>)[field]

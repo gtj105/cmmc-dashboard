@@ -5,6 +5,7 @@ import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { audit, getClientIp } from '@/lib/audit'
+import { parsePasswordChange, validationError } from '@/lib/validation'
 
 export async function POST(req: NextRequest) {
   const csrfError = checkCsrf(req)
@@ -16,24 +17,16 @@ export async function POST(req: NextRequest) {
   const userId = parseInt((session.user as { id?: string }).id ?? '0', 10)
   if (!userId) return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
 
-  let body: unknown
+  let rawBody: unknown
   try {
-    body = await req.json()
+    rawBody = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const { currentPassword, newPassword } = body as { currentPassword?: unknown; newPassword?: unknown }
-
-  if (typeof currentPassword !== 'string' || !currentPassword) {
-    return NextResponse.json({ error: 'Current password is required' }, { status: 400 })
-  }
-  if (typeof newPassword !== 'string' || newPassword.length < 12) {
-    return NextResponse.json({ error: 'New password must be at least 12 characters' }, { status: 400 })
-  }
-  if (currentPassword === newPassword) {
-    return NextResponse.json({ error: 'New password must be different from current password' }, { status: 400 })
-  }
+  const parsed = parsePasswordChange(rawBody)
+  if (!parsed.success) return validationError(parsed.error)
+  const { currentPassword, newPassword } = parsed.data
 
   const [user] = await sql<{ password_hash: string }[]>`
     SELECT password_hash FROM users WHERE id = ${userId}

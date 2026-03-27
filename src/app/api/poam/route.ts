@@ -4,11 +4,9 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
-import type { PoamStatus } from '@/lib/types'
+import { parsePoamCreate, validationError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
-
-const VALID_STATUSES: PoamStatus[] = ['Open', 'In Progress', 'Closed']
 
 export async function POST(req: NextRequest) {
   const csrfError = checkCsrf(req)
@@ -18,15 +16,16 @@ export async function POST(req: NextRequest) {
   const authError = requireRole(session, 'editor')
   if (authError) return authError
 
-  const body = await req.json()
-  const { finding, practice_id, responsible_individual, resources_required, scheduled_completion, milestone_progress, status } = body
+  let rawBody: unknown
+  try {
+    rawBody = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
 
-  if (!finding || typeof finding !== 'string' || finding.trim() === '') {
-    return NextResponse.json({ error: 'finding is required' }, { status: 400 })
-  }
-  if (status !== undefined && !VALID_STATUSES.includes(status)) {
-    return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
-  }
+  const parsed = parsePoamCreate(rawBody)
+  if (!parsed.success) return validationError(parsed.error)
+  const { finding, practice_id, responsible_individual, resources_required, scheduled_completion, milestone_progress, status } = parsed.data
 
   try {
     const [created] = await sql`

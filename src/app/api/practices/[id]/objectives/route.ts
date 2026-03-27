@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
+import { parseObjectivePatch, validationError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,11 +31,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const session = await getServerSession(getAuthOptions())
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { letter, status } = await req.json()
-  const validStatuses = ['met', 'partial', 'not_met', 'not_assessed']
-  if (!letter || !validStatuses.includes(status)) {
-    return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
+  let rawBody: unknown
+  try {
+    rawBody = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
+
+  const parsed = parseObjectivePatch(rawBody)
+  if (!parsed.success) return validationError(parsed.error)
+  const { letter, status } = parsed.data
 
   await sql`
     INSERT INTO practice_objective_status (practice_id, objective_letter, status, updated_at)

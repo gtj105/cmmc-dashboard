@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions, requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
-import { USER_ROLE_VALUES } from '@/lib/types'
 import { audit, getClientIp } from '@/lib/audit'
+import { parseUserRolePatch, validationError } from '@/lib/validation'
 
 export async function PATCH(
   req: NextRequest,
@@ -22,19 +22,18 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid user id' }, { status: 400 })
   }
 
-  let body: unknown
+  let rawBody: unknown
   try {
-    body = await req.json()
+    rawBody = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const { role } = body as { role?: unknown }
-  if (typeof role !== 'string' || !USER_ROLE_VALUES.includes(role as typeof USER_ROLE_VALUES[number])) {
-    return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
-  }
+  const parsed = parseUserRolePatch(rawBody)
+  if (!parsed.success) return validationError(parsed.error)
+  const { role } = parsed.data
 
-  // Prevent self-role-change — session.user.id is stored as a string (JWT token)
+  // Prevent self-role-change
   const currentId = (session!.user as { id?: string }).id
   if (typeof currentId !== 'string') {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

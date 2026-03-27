@@ -4,8 +4,8 @@ import { getAuthOptions, requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import bcrypt from 'bcryptjs'
-import { USER_ROLE_VALUES } from '@/lib/types'
 import { audit, getClientIp } from '@/lib/audit'
+import { parseUserCreate, validationError } from '@/lib/validation'
 
 export async function POST(req: NextRequest) {
   const csrfError = checkCsrf(req)
@@ -15,32 +15,16 @@ export async function POST(req: NextRequest) {
   const authError = requireRole(session, 'admin')
   if (authError) return authError
 
-  let body: unknown
+  let rawBody: unknown
   try {
-    body = await req.json()
+    rawBody = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const { email, name, password, role } = body as {
-    email?: unknown; name?: unknown; password?: unknown; role?: unknown
-  }
-
-  if (typeof email !== 'string' || !email.trim()) {
-    return NextResponse.json({ error: 'Email is required' }, { status: 400 })
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-    return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
-  }
-  if (typeof name !== 'string' || !name.trim()) {
-    return NextResponse.json({ error: 'Name is required' }, { status: 400 })
-  }
-  if (typeof password !== 'string' || password.length < 12) {
-    return NextResponse.json({ error: 'Password must be at least 12 characters' }, { status: 400 })
-  }
-  if (typeof role !== 'string' || !USER_ROLE_VALUES.includes(role as typeof USER_ROLE_VALUES[number])) {
-    return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
-  }
+  const parsed = parseUserCreate(rawBody)
+  if (!parsed.success) return validationError(parsed.error)
+  const { email, name, password, role } = parsed.data
 
   const passwordHash = await bcrypt.hash(password, 10)
 
