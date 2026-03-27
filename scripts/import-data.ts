@@ -48,73 +48,22 @@ function validatePayload(payload: unknown): asserts payload is ExportPayload {
   }
 }
 
-async function ensureTables() {
-  await sql`
-    CREATE TABLE IF NOT EXISTS domains (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      abbreviation TEXT NOT NULL,
-      framework TEXT NOT NULL DEFAULT 'CMMC',
-      description TEXT NOT NULL DEFAULT ''
-    )
-  `
-  await sql`
-    CREATE TABLE IF NOT EXISTS practices (
-      id SERIAL PRIMARY KEY,
-      domain_id INTEGER NOT NULL REFERENCES domains(id),
-      framework TEXT NOT NULL DEFAULT 'CMMC',
-      practice_id TEXT NOT NULL UNIQUE,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'Not Started',
-      risk_level TEXT NOT NULL DEFAULT 'Medium',
-      owner TEXT,
-      due_date DATE,
-      evidence_exists BOOLEAN NOT NULL DEFAULT false,
-      notes TEXT,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `
-  await sql`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      email TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL,
-      name TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('viewer', 'editor', 'admin')),
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT`
-  await sql`UPDATE users SET role = 'viewer' WHERE role IS NULL`
-  await sql`ALTER TABLE users ALTER COLUMN role SET DEFAULT 'viewer'`
-  await sql`ALTER TABLE users ALTER COLUMN role SET NOT NULL`
-  await sql`
-    CREATE TABLE IF NOT EXISTS poam_items (
-      id SERIAL PRIMARY KEY,
-      practice_id TEXT REFERENCES practices(practice_id) ON DELETE SET NULL,
-      finding TEXT NOT NULL,
-      responsible_individual TEXT,
-      resources_required TEXT,
-      scheduled_completion DATE,
-      milestone_progress INTEGER NOT NULL DEFAULT 0 CHECK (milestone_progress BETWEEN 0 AND 100),
-      status TEXT NOT NULL DEFAULT 'Open',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `
-  await sql`
-    CREATE TABLE IF NOT EXISTS practice_history (
-      id SERIAL PRIMARY KEY,
-      practice_id TEXT NOT NULL,
-      field_changed TEXT NOT NULL,
-      old_value TEXT,
-      new_value TEXT,
-      changed_by TEXT NOT NULL,
-      changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `
+async function assertSchemaReady() {
+  // Import assumes the schema is already prepared by seed.ts or a migration run.
+  // This check fails loudly if the tables aren't present so operators know to run
+  // bootstrap first rather than silently creating a partial schema here.
+  const requiredTables = ['domains', 'practices', 'users', 'poam_items', 'practice_history']
+  for (const table of requiredTables) {
+    try {
+      await sql`SELECT 1 FROM ${sql(table)} LIMIT 0`
+    } catch {
+      throw new Error(
+        `Schema not ready: table "${table}" does not exist.\n` +
+        `Run bootstrap first: bash ./scripts/bootstrap.sh\n` +
+        `Or inside the container: docker compose exec app npm run seed`
+      )
+    }
+  }
 }
 
 async function main() {
@@ -128,7 +77,7 @@ async function main() {
   const parsed = JSON.parse(raw)
   validatePayload(parsed)
 
-  await ensureTables()
+  await assertSchemaReady()
 
   await sql.begin(async (tx) => {
     const q = tx as unknown as typeof sql

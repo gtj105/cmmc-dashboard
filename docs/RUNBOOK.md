@@ -2,296 +2,252 @@
 
 ## Purpose
 
-This runbook is the practical operating guide for the internal CMMC dashboard.
+Practical operating guide for the internal CMMC Dashboard. All normal operations run through the wrapper scripts — no host-side Node.js required.
 
-Use it when you need to:
+For first-time setup, see [docs/DEPLOYMENT.md](./DEPLOYMENT.md).
+For developer workflow, see [docs/DEVELOPMENT.md](./DEVELOPMENT.md).
 
-- start or stop the stack
-- reset local data
-- seed a fresh environment
-- create or manage users
-- export a backup
-- import a backup into a fresh dashboard
-- troubleshoot the most common issues
+---
 
-## 1. Start The Dashboard
+## 1. Start and Stop
 
-Project root:
+Start the runtime:
 
 ```bash
-cd /Users/gtj105/Documents/obsidian/dashboard
+bash ./scripts/start-runtime.sh
 ```
 
-Start all services:
+Stop the runtime (data preserved):
 
 ```bash
-docker compose up -d
+bash ./scripts/stop-runtime.sh
 ```
 
-Open:
-
-```text
-http://localhost/login
-```
-
-Check status:
+Check service status:
 
 ```bash
 docker compose ps
 ```
 
-Expected services:
+Expected services: `db`, `app`, `nginx`, `backup`
 
-- `db`
-- `app`
-- `nginx`
+Access the app at: `http://localhost/login`
 
-## 2. Stop The Dashboard
+---
 
-```bash
-docker compose down
-```
+## 2. Full Reset (destroys all data)
 
-This stops containers but preserves data.
-
-## 3. Reset Local Data
-
-Only do this when it is safe to destroy local dashboard data.
+Only do this when it is safe to destroy existing data.
 
 ```bash
 docker compose down -v
-docker compose up -d db
-npm run seed
-docker compose up -d app nginx
+bash ./scripts/bootstrap.sh
 ```
 
-What this does:
+This wipes all volumes and runs a clean bootstrap. Default admin after reset: `admin@localhost` / `changeme`.
 
-- removes the local Postgres volume
-- recreates the database
-- seeds sample CMMC and ITAR data
-- recreates the default admin user
+---
 
-Default admin after seed:
+## 3. User Management
 
-- email: `admin@localhost`
-- password: `admin`
-
-## 4. User Management
-
-### Create A User
+### Create an admin user
 
 ```bash
-npm run create-user -- --email user@example.com --name "User Name" --role viewer
+bash ./scripts/create-admin.sh --email user@example.com --name "User Name" --password "secure-password"
 ```
 
-The script will:
-
-- prompt for password
-- prompt for confirmation
-- hash the password with bcrypt
-- insert the user
-
-Valid roles:
-
-- `viewer`
-- `editor`
-- `admin`
-
-### List Users
+### Create a viewer or editor (inside the container)
 
 ```bash
-npm run list-users
+docker compose exec app npm run create-user -- --email viewer@example.com --name "Viewer" --role viewer
+docker compose exec app npm run create-user -- --email editor@example.com --name "Editor" --role editor
 ```
 
-### Change A User Role
+### List users
 
 ```bash
-npm run set-role -- --email user@example.com --role editor
+docker compose exec app npm run list-users
 ```
 
-## 5. Data Backup And Restore
-
-### Export Dashboard Data
+### Change a user role
 
 ```bash
-npm run export-data -- --file exports/dashboard-backup.json
+docker compose exec app npm run set-role -- --email user@example.com --role editor
 ```
 
-The export contains:
+Valid roles: `viewer`, `editor`, `admin`
 
-- `users`
-- `domains`
-- `practices`
-- `poam_items`
-- `practice_history`
+---
 
-### Import Dashboard Data
+## 4. Data Backup and Restore
 
-Use import for a fresh environment or a deliberate restore.
+### Manual JSON export
 
 ```bash
-npm run import-data -- --file exports/dashboard-backup.json --wipe
+bash ./scripts/export-runtime.sh
 ```
 
-Important:
+Output lands in `./exports/` on the host.
 
-- `--wipe` truncates existing dashboard data first
-- import is not a merge workflow
-- the export file should be treated as sensitive
+The export contains: `users`, `domains`, `practices`, `poam_items`, `practice_history`
 
-## 6. Build And Verification
-
-Type check:
+### Import from a JSON export
 
 ```bash
-./node_modules/.bin/tsc --noEmit
+bash ./scripts/import-runtime.sh --file exports/export-20250101-120000.json
 ```
 
-Build app image:
+Add `--wipe` to truncate existing data before importing:
 
 ```bash
-docker compose build app
+bash ./scripts/import-runtime.sh --file exports/export-20250101-120000.json --wipe
 ```
 
-Bring updated stack up:
+Import expects the schema to already exist. If importing to a fresh instance, run `bash ./scripts/bootstrap.sh` first.
 
-```bash
-docker compose up -d
-```
+### Automated backups
 
-## 7. Overlay Workflow
+The `backup` container runs nightly at 2 AM. Backups are stored in the `backup_data` Docker volume.
 
-If overlay mapping data changes in code, reseed the local database before testing the dashboard.
+### Evidence file backup
 
-Use:
-
-```bash
-rm -rf .next
-npm run seed
-npm run dev
-```
-
-Current overlay notes:
-
-- the local seed currently loads `4` available overlay packs, all off by default
-- current seeded mapping counts:
-  - `Microsoft 365 GCC High`: `44`
-  - `Azure Government`: `92`
-  - `Microsoft Defender`: `58`
-  - `Microsoft Purview`: `42`
-- the overview trend section currently keeps both the burndown chart and the domain radar
-
-Coverage behavior:
-
-- fully inherited `CSP` controls count toward progress to the `110`
-- `Shared` controls automatically present as `In Progress` when their raw status is still `Not Started`
-- `Shared` controls require OSC completion before they count as covered
-- `Validation required` controls do not count until validated
-- risk and POA&M remain focused on OSC work still open
-
-## 8. Troubleshooting
-
-### Login Page Does Not Load
-
-Check:
-
-```bash
-docker compose ps
-```
-
-Then restart:
-
-```bash
-docker compose up -d
-```
-
-### Database Authentication Fails
-
-Make sure `.env` and the current Postgres volume agree on the password.
-
-If this is a blank local environment, the cleanest fix is:
-
-```bash
-docker compose down -v
-docker compose up -d db
-npm run seed
-docker compose up -d app nginx
-```
-
-### User Cannot Edit
-
-Check the user role:
-
-```bash
-npm run list-users
-```
-
-Then promote if needed:
-
-```bash
-npm run set-role -- --email user@example.com --role editor
-```
-
-### Import Fails On Existing Data
-
-Use:
-
-```bash
-npm run import-data -- --file exports/dashboard-backup.json --wipe
-```
-
-The current import path expects a clean destination when IDs and unique keys already exist.
-
-### Overlay Numbers Look Wrong
-
-Most commonly this is one of three issues:
-
-1. The local database was not reseeded after mapping changes.
-2. A stale Next.js cache is still serving old client chunks.
-3. The overlay was not enabled on `/overlays`.
-
-Use:
-
-```bash
-rm -rf .next
-npm run seed
-npm run dev
-```
-
-Then:
-
-- log in again
-- enable the overlay packs you want to test on `/overlays`
-- reload `/overview`
-
-## 9. Operational Rule Of Thumb
-
-This dashboard is intentionally simple.
-
-Use the CLI for infrequent admin tasks.
-Do not build a management UI unless those admin tasks become frequent enough to justify the extra surface area.
-
-## Evidence File Backup
-
-Evidence files are stored in the `evidence_data` Docker named volume at `/data/evidence/` inside the app container. They are NOT included in the `export-data` JSON backup.
+Evidence files live in the `evidence_data` Docker volume at `/data/evidence/` inside the app container. They are not included in the JSON export.
 
 To back up evidence files:
 
 ```bash
 docker run --rm \
   -v evidence_data:/data \
-  -v $(pwd)/backups:/backup \
+  -v "$(pwd)/backups":/backup \
   alpine tar czf /backup/evidence-$(date +%Y%m%d).tar.gz /data
 ```
 
-To restore (substitute the actual backup filename for `evidence-YYYYMMDD.tar.gz`):
+To restore (replace filename with your actual backup):
 
 ```bash
 docker run --rm \
   -v evidence_data:/data \
-  -v $(pwd)/backups:/backup \
+  -v "$(pwd)/backups":/backup \
   alpine tar xzf /backup/evidence-YYYYMMDD.tar.gz -C /
 ```
 
-Run both the database export and the evidence backup together for a complete snapshot.
+Run both the JSON export and the evidence backup for a complete snapshot.
+
+---
+
+## 5. Validation and Smoke Test
+
+Run DB invariant checks (after imports, migrations, or schema changes):
+
+```bash
+bash ./scripts/validate-runtime.sh
+```
+
+Run post-deploy smoke test:
+
+```bash
+bash ./scripts/smoke-test.sh
+```
+
+---
+
+## 6. Build and Deploy Updates
+
+Rebuild the app image after code changes:
+
+```bash
+docker compose build app
+bash ./scripts/start-runtime.sh
+```
+
+After updating schema or seeding data:
+
+```bash
+bash ./scripts/seed-runtime.sh
+bash ./scripts/validate-runtime.sh
+```
+
+---
+
+## 7. Overlay Workflow
+
+If overlay mapping data changes in code, reseed the dev database before testing:
+
+```bash
+docker compose -p cmmc-dev -f docker-compose.yml -f docker-compose.dev.yml exec app npm run seed
+```
+
+Current overlay notes:
+
+- 4 overlay packs available, all off by default
+- Seeded mapping counts: M365 GCC High (44), Azure Government (92), Defender (58), Purview (42)
+- Fully inherited CSP controls count toward the 110
+- Shared controls auto-present as In Progress when raw status is Not Started
+- Shared controls require OSC completion before they count as covered
+- Validation required controls do not count until validated
+
+---
+
+## 8. Troubleshooting
+
+### Login page does not load
+
+```bash
+docker compose ps
+docker compose logs app --tail 50
+bash ./scripts/start-runtime.sh
+```
+
+### Database authentication fails
+
+Check that secrets and the Postgres volume agree. If on a fresh install:
+
+```bash
+docker compose down -v
+bash ./scripts/bootstrap.sh
+```
+
+### User cannot edit
+
+Check role:
+
+```bash
+docker compose exec app npm run list-users
+```
+
+Promote if needed:
+
+```bash
+docker compose exec app npm run set-role -- --email user@example.com --role editor
+```
+
+### Import fails with "Schema not ready"
+
+Run bootstrap first:
+
+```bash
+bash ./scripts/bootstrap.sh
+```
+
+Then retry the import.
+
+### Import fails on unique key conflict
+
+Use `--wipe` to clear existing data:
+
+```bash
+bash ./scripts/import-runtime.sh --file exports/export.json --wipe
+```
+
+### Overlay numbers look wrong
+
+1. Reseed the dev database after mapping code changes
+2. Clear the Next.js cache (`rm -rf .next`) if running in dev
+3. Enable the overlay packs on `/overlays`
+4. Reload `/overview`
+
+---
+
+## 9. Rule of Thumb
+
+This dashboard is intentionally simple. Use the CLI scripts for infrequent admin tasks. Do not build a management UI unless those tasks become frequent enough to justify the extra surface area.

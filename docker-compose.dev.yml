@@ -1,0 +1,49 @@
+# ─────────────────────────────────────────────────────────────────
+# CMMC Dashboard — Dev Compose Override
+#
+# Use with: docker compose -p cmmc-dev -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Or simply: bash ./scripts/start-dev.sh
+#
+# This overlay isolates the dev stack from the production runtime:
+#   - Separate port (3001 instead of 80)
+#   - Separate DB and evidence volumes (pgdata-dev, evidence-dev)
+#   - Source code mounted for live-reload via `npm run dev`
+#   - Backup sidecar omitted in dev (not needed locally)
+#
+# The production runtime stack (started with start-runtime.sh) is
+# never touched by this dev instance.
+# ─────────────────────────────────────────────────────────────────
+
+services:
+  db:
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5433:5432"
+
+  app:
+    build:
+      context: .
+      target: deps
+    command: npm run dev
+    ports:
+      - "127.0.0.1:3001:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      - evidence-dev:/data/evidence
+    environment:
+      NODE_ENV: development
+
+  nginx:
+    profiles:
+      - disabled
+
+  backup:
+    profiles:
+      - disabled
+
+volumes:
+  pgdata-dev:
+  evidence-dev:
