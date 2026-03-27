@@ -22,7 +22,17 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Python
 __pycache__/
+*.pyc
+*.pyo
+
+# TypeScript build cache
+tsconfig.tsbuildinfo
+
+# TLS certs (generated at runtime)
+certs/
 
 # Editor
 .vscode/

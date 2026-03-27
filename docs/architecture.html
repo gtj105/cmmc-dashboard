@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMMC Dashboard — Architecture Diagram</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; padding: 32px; }
+  h1 { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 6px; color: #f1f5f9; letter-spacing: -0.5px; }
+  .subtitle { text-align: center; font-size: 14px; color: #94a3b8; margin-bottom: 8px; }
+  .updated { text-align: center; font-size: 12px; color: #475569; margin-bottom: 36px; }
+
+  .diagram { max-width: 1400px; margin: 0 auto; display: grid; gap: 24px; }
+
+  .layer { border-radius: 14px; padding: 24px; position: relative; }
+  .layer-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .layer-label .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .infra  { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); }
+  .infra .dot { background: #818cf8; }
+  .infra .layer-label { color: #a5b4fc; }
+
+  .data   { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); }
+  .data .dot { background: #34d399; }
+  .data .layer-label { color: #6ee7b7; }
+
+  .backend { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
+  .backend .dot { background: #fbbf24; }
+  .backend .layer-label { color: #fcd34d; }
+
+  .frontend { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); }
+  .frontend .dot { background: #60a5fa; }
+  .frontend .layer-label { color: #93c5fd; }
+
+  .security { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); }
+  .security .dot { background: #f87171; }
+  .security .layer-label { color: #fca5a5; }
+
+  .clients { background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.25); }
+  .clients .dot { background: #c084fc; }
+  .clients .layer-label { color: #d8b4fe; }
+
+  .boxes { display: flex; flex-wrap: wrap; gap: 14px; }
+  .box { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px 18px; min-width: 180px; flex: 1; }
+  .box-title { font-size: 13px; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .box-title .icon { font-size: 16px; }
+  .box ul { list-style: none; padding: 0; }
+  .box li { font-size: 12px; color: #94a3b8; padding: 3px 0; padding-left: 14px; position: relative; }
+  .box li::before { content: '›'; position: absolute; left: 0; color: #475569; font-weight: bold; }
+  .box li.fixed { color: #34d399; }
+  .box li.fixed::before { color: #059669; }
+  .box li.gap { color: #f87171; }
+  .box li.gap::before { color: #dc2626; }
+
+  .flow-section { margin-top: 32px; }
+  .flow-title { text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #f1f5f9; }
+  .flow-grid { display: grid; grid-template-columns: 1fr; gap: 0; max-width: 900px; margin: 0 auto; }
+  .flow-step { display: flex; align-items: stretch; min-height: 64px; }
+  .flow-num { width: 48px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+  .flow-num .circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #0f1117; flex-shrink: 0; }
+  .flow-num .line { flex: 1; width: 2px; background: rgba(255,255,255,0.1); margin-top: 4px; }
+  .flow-content { padding: 4px 0 20px 16px; }
+  .flow-content .fc-title { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+  .flow-content .fc-desc { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+  .flow-step:nth-child(1) .circle { background: #818cf8; }
+  .flow-step:nth-child(2) .circle { background: #60a5fa; }
+  .flow-step:nth-child(3) .circle { background: #fbbf24; }
+  .flow-step:nth-child(4) .circle { background: #34d399; }
+  .flow-step:nth-child(5) .circle { background: #f87171; }
+  .flow-step:nth-child(6) .circle { background: #c084fc; }
+  .flow-step:last-child .flow-num .line { display: none; }
+
+  .flow-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1200px; margin: 0 auto; }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 14px; max-width: 1400px; margin: 0 auto 28px; }
+  .stat { flex: 1; min-width: 140px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; text-align: center; }
+  .stat .num { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #818cf8, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat .label { font-size: 11px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .schema-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  .schema-table th { text-align: left; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .schema-table td { font-size: 12px; color: #94a3b8; padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .schema-table td:first-child { font-weight: 600; color: #e2e8f0; font-family: 'SF Mono', 'Fira Code', monospace; }
+  .schema-table .rel { color: #818cf8; font-size: 11px; }
+  .schema-table tr.new-row td { color: #34d399; }
+  .schema-table tr.new-row td:first-child { color: #34d399; }
+
+  .arrow-down { text-align: center; padding: 8px 0; }
+  .arrow-down span { display: inline-block; color: #475569; font-size: 20px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  .badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+  .badge-new { background: rgba(52,211,153,0.2); color: #34d399; border: 1px solid rgba(52,211,153,0.4); }
+  .badge-updated { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+
+  @media print {
+    body { background: #fff; color: #1e293b; }
+    .layer { border-color: #cbd5e1; }
+    .box { border-color: #e2e8f0; background: #f8fafc; }
+    .box li { color: #475569; }
+    .stat { border-color: #e2e8f0; }
+    .stat .num { color: #4f46e5; -webkit-text-fill-color: #4f46e5; }
+  }
+</style>
+</head>
+<body>
+
+<h1>CMMC Compliance Dashboard — System Architecture</h1>
+<p class="subtitle">Next.js 14 · PostgreSQL 15 · Docker Compose · Nginx · Automated Backups · Audit Logging</p>
+<p class="updated">Updated March 2026 — Phases 1–4 partial (CSP + Zod complete)</p></p>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat"><div class="num">110+</div><div class="label">CMMC Practices</div></div>
+  <div class="stat"><div class="num">14</div><div class="label">Security Domains</div></div>
+  <div class="stat"><div class="num">4</div><div class="label">Cloud Overlays</div></div>
+  <div class="stat"><div class="num">10</div><div class="label">DB Tables</div></div>
+  <div class="stat"><div class="num">4</div><div class="label">Docker Services</div></div>
+  <div class="stat"><div class="num">3</div><div class="label">User Roles</div></div>
+  <div class="stat"><div class="num">4</div><div class="label">Admin Tabs</div></div>
+</div>
+
+<div class="diagram">
+
+  <!-- ========== CLIENTS ========== -->
+  <div class="layer clients">
+    <div class="layer-label"><span class="dot"></span>Clients &amp; Users</div>
+    <div class="boxes">
+      <div class="box">
+        <div class="box-title"><span class="icon">👤</span> Viewer</div>
+        <ul>
+          <li>Read-only dashboard access</li>
+          <li>View compliance status &amp; SPRS</li>
+          <li>View activity logs &amp; reports</li>
+          <li>Print compliance reports</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">✏️</span> Editor</div>
+        <ul>
+          <li>Update practice statuses</li>
+          <li>Upload evidence (files &amp; URLs)</li>
+          <li>Create &amp; edit POA&amp;M items</li>
+          <li>Toggle cloud overlay packs</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">🔑</span> Admin</div>
+        <ul>
+          <li>Full editor permissions</li>
+          <li>Manage users (create/role/delete)</li>
+          <li>Export / import backups</li>
+          <li>Factory reset to baseline</li>
+          <li>View audit log &amp; security events</li>
+          <li>Monitor system health</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><span>▼ HTTP :80 (TLS config ready) ▼</span></div>
+
+  <!-- ========== INFRASTRUCTURE ========== -->
+  <div class="layer infra">
+    <div class="layer-label"><span class="dot"></span>Infrastructure — Docker Compose Stack (4 Services)</div>
+    <div class="boxes">
+      <div class="box">
+        <div class="box-title"><span class="icon">🌐</span> Nginx (Alpine) <span class="badge badge-updated">updated</span></div>
+        <ul>
+          <li>Port 80 → upstream app:3000</li>
+          <li>Rate limit: 10 req/s API, 3 req/s login</li>
+          <li>limit_req_zone (nginx-level persistence)</li>
+          <li>X-Frame-Options: DENY</li>
+          <li>X-Content-Type-Options: nosniff</li>
+          <li>X-XSS-Protection: 1; mode=block</li>
+          <li>Referrer-Policy: strict-origin</li>
+          <li class="fixed">Full CSP: default-src 'self', form-action, base-uri, object-src 'none', frame-ancestors 'none'</li>
+          <li>Read-only root filesystem</li>
+          <li>tmpfs: /var/cache/nginx, /var/run</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">📦</span> App (Node 20) <span class="badge badge-updated">updated</span></div>
+        <ul>
+          <li>Next.js 14 standalone output</li>
+          <li>HOSTNAME=0.0.0.0 (binds all interfaces)</li>
+          <li>User: nextjs (UID 1001, non-root)</li>
+          <li>no-new-privileges: true</li>
+          <li>Docker secrets: nextauth_secret</li>
+          <li>Health check: /api/health every 10s</li>
+          <li>Volume: /data/evidence</li>
+          <li>Log rotation: 10MB × 5 files</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">🗄️</span> PostgreSQL 15 (Alpine)</div>
+        <ul>
+          <li>Bound to 127.0.0.1:5432 only</li>
+          <li>Volume: pgdata (persistent)</li>
+          <li>Docker secrets: postgres_password</li>
+          <li>POSTGRES_PASSWORD_FILE at /run/secrets/</li>
+          <li>Health check: pg_isready (5s interval)</li>
+          <li>Pool: max 10 connections, 30min lifetime</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">💾</span> Backup (Alpine) <span class="badge badge-new">new</span></div>
+        <ul>
+          <li>pg_dump daily at 2AM (cron)</li>
+          <li>Evidence tar.gz backup alongside DB dump</li>
+          <li>SHA-256 checksums on every backup</li>
+          <li>Retention: 30 daily + 12 weekly snapshots</li>
+          <li>Weekly integrity verification (Sundays 6AM)</li>
+          <li>restore.sh with --verify, --list, --file flags</li>
+          <li>Volume: backup_data</li>
+          <li>Docker secrets: postgres_password</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><span>▼ Internal Docker Network ▼</span></div>
+
+  <!-- ========== FRONTEND ========== -->
+  <div class="layer frontend">
+    <div class="layer-label"><span class="dot"></span>Frontend — Next.js 14 (React 18 + TypeScript)</div>
+    <div class="boxes">
+      <div class="box" style="flex: 2;">
+        <div class="box-title"><span class="icon">📄</span> Pages (SSR + ISR)</div>
+        <ul>
+          <li>/login — Email/password auth form</li>
+          <li>/overview — Compliance gauge, SPRS score, burndown, domain tiles</li>
+          <li>/domain/[id] — Practice table, evidence counts, overlay ownership</li>
+          <li>/overlays — Toggle packs, mapping viewer, inheritance badges</li>
+          <li>/activity — Practice history timeline (last 200 events)</li>
+          <li>/poam — POA&amp;M table, milestone progress, edit/delete</li>
+          <li>/risk — High/Critical practices, ordered by severity &amp; due date</li>
+          <li>/report — Print-optimized compliance report (Ctrl+P)</li>
+          <li>/admin/users — Administration hub (tabbed layout)</li>
+          <li>/settings — Password change</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">🧩</span> Components</div>
+        <ul>
+          <li>AppShell (sidebar + topnav)</li>
+          <li>AdminTabs (Users / Backup / Audit / Health) <span class="badge badge-new">new</span></li>
+          <li>AuditLogPanel (filterable event table) <span class="badge badge-new">new</span></li>
+          <li>SystemHealthPanel (auto-refresh 15s) <span class="badge badge-new">new</span></li>
+          <li>BackupPanel (export / import / factory reset) <span class="badge badge-updated">updated</span></li>
+          <li>UserTable (create/role/delete)</li>
+          <li>PracticeTable (sort, filter)</li>
+          <li>EvidenceDrawer (file/URL upload)</li>
+          <li>ComplianceGauge (animated)</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">🔧</span> Client Libs</div>
+        <ul>
+          <li>apiFetch() — auto-attaches CSRF token <span class="badge badge-new">new</span></li>
+          <li>CSRF double-submit cookie pattern <span class="badge badge-new">new</span></li>
+          <li>middleware.ts — sets CSRF cookie on page load <span class="badge badge-new">new</span></li>
+          <li>NextAuth.js (session management)</li>
+          <li>Tailwind CSS 3.4</li>
+          <li>Radix UI primitives (15+)</li>
+          <li>Recharts (data viz)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><span>▼ API Routes (apiFetch / JSON + CSRF validation) ▼</span></div>
+
+  <!-- ========== BACKEND ========== -->
+  <div class="layer backend">
+    <div class="layer-label"><span class="dot"></span>Backend — Next.js API Routes</div>
+    <div class="boxes">
+      <div class="box">
+        <div class="box-title"><span class="icon">🔐</span> Auth API <span class="badge badge-updated">updated</span></div>
+        <ul>
+          <li>/api/auth/[...nextauth]</li>
+          <li>Credentials Provider + JWT strategy</li>
+          <li>bcrypt (10 rounds), 12-char minimum</li>
+          <li>Rate limit: 5 attempts / 15min lockout</li>
+          <li>Timing-attack safe comparison</li>
+          <li>Audit: login.success / login.failed / login.locked_out</li>
+          <li>signOut event logged</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">📋</span> Practice API</div>
+        <ul>
+          <li>PATCH /api/practices/[id]</li>
+          <li>POST /api/practices/[id]/evidence</li>
+          <li>CSRF validated on all mutations</li>
+          <li>Row-locking transactions</li>
+          <li>Audit trail (practice_history)</li>
+          <li>Evidence: 25MB max, MIME whitelist</li>
+          <li>Path traversal protection</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">📌</span> POA&amp;M API</div>
+        <ul>
+          <li>POST /api/poam (create)</li>
+          <li>PATCH /api/poam/[id] (update)</li>
+          <li>DELETE /api/poam/[id] (admin)</li>
+          <li>CSRF validated on all mutations</li>
+          <li>Status: Open → In Progress → Closed</li>
+          <li>Milestone progress (0–100%)</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">☁️</span> Overlay API</div>
+        <ul>
+          <li>GET /api/overlays</li>
+          <li>POST /api/overlays/[key]/toggle</li>
+          <li>GET /api/overlays/[key]/mappings</li>
+          <li>CSRF validated on toggle</li>
+          <li>ISR revalidation on toggle</li>
+          <li>Inheritance resolution engine</li>
+          <li>Audit: overlay.toggled</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">⚙️</span> Admin API <span class="badge badge-updated">updated</span></div>
+        <ul>
+          <li>POST/PATCH/DELETE /api/admin/users</li>
+          <li>GET /api/admin/backup/export</li>
+          <li>POST /api/admin/backup/import</li>
+          <li>POST /api/admin/factory-reset <span class="badge badge-new">new</span></li>
+          <li>GET /api/admin/audit <span class="badge badge-new">new</span></li>
+          <li>Shared restoreFromPayload() in lib/restore.ts</li>
+          <li>All mutations: CSRF + admin role required</li>
+          <li>Full audit logging on all operations</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">❤️</span> Health API <span class="badge badge-new">new</span></div>
+        <ul>
+          <li>GET /api/health (no auth — Docker probe)</li>
+          <li>Checks: DB connectivity + latency</li>
+          <li>Checks: Evidence volume mounted</li>
+          <li>Checks: Heap memory &lt; 512MB</li>
+          <li>Returns 200 healthy / 503 unhealthy</li>
+          <li>Used by Docker health check + admin UI</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><span>▼ postgres driver (pool: 10, 30s idle timeout) ▼</span></div>
+
+  <!-- ========== DATA ========== -->
+  <div class="layer data">
+    <div class="layer-label"><span class="dot"></span>Data Layer — PostgreSQL 15</div>
+    <div class="boxes">
+      <div class="box" style="flex: 2;">
+        <div class="box-title"><span class="icon">🗃️</span> Database Schema (10 Tables)</div>
+        <table class="schema-table">
+          <thead><tr><th>Table</th><th>Purpose</th><th>Key Relations</th></tr></thead>
+          <tbody>
+            <tr><td>domains</td><td>14 CMMC + 1 ITAR domain</td><td></td></tr>
+            <tr><td>practices</td><td>110+ controls with status, risk, SPRS weight</td><td class="rel">→ domains.id</td></tr>
+            <tr><td>users</td><td>Auth (email, bcrypt hash, role)</td><td></td></tr>
+            <tr><td>practice_evidence</td><td>File &amp; URL attachments</td><td class="rel">→ practices.id</td></tr>
+            <tr><td>practice_history</td><td>Field-level change audit trail</td><td class="rel">→ practices.id</td></tr>
+            <tr><td>poam_items</td><td>Plan of Action &amp; Milestones</td><td class="rel">→ practices.id (optional)</td></tr>
+            <tr><td>overlay_packs</td><td>Cloud overlay definitions (4 packs)</td><td></td></tr>
+            <tr><td>overlay_mappings</td><td>Practice → CSP control mapping</td><td class="rel">→ overlay_packs.id</td></tr>
+            <tr><td>overlay_validations</td><td>Inheritance verification evidence</td><td class="rel">→ overlay_mappings.id</td></tr>
+            <tr class="new-row"><td>security_events ✦</td><td>Security audit log (login, CSRF, user changes)</td><td></td></tr>
+          </tbody>
+        </table>
+        <p style="font-size: 11px; color: #34d399; margin-top: 8px;">✦ Added in Phase 3</p>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">📁</span> File Storage</div>
+        <ul>
+          <li>Volume: evidence_data</li>
+          <li>Path: /data/evidence/[practice_id]/</li>
+          <li>UUID-named files (no path traversal)</li>
+          <li>25 MB per file limit</li>
+          <li>Whitelist: PDF, PNG, JPG, DOCX, XLSX, CSV, TXT, ZIP</li>
+          <li>Backed up separately by backup service</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">📊</span> SPRS Scoring</div>
+        <ul>
+          <li>Baseline: 110 practices = 314 pts</li>
+          <li>Scale: −203 → +110</li>
+          <li>Weights: 5pt (44), 3pt (14), 1pt (52)</li>
+          <li>Residual scoring (minus CSP-owned)</li>
+          <li>Conservative inheritance precedence</li>
+          <li>computeBaselineTotals()</li>
+          <li>computeResidualTotals()</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">💿</span> Baseline Snapshot <span class="badge badge-new">new</span></div>
+        <ul>
+          <li>scripts/data/baseline.json (committed)</li>
+          <li>Generated via psql JSON aggregation</li>
+          <li>Contains clean-seed state of all tables</li>
+          <li>Factory reset restores from this file</li>
+          <li>Regenerate after schema / seed changes</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SECURITY ========== -->
+  <div class="layer security">
+    <div class="layer-label"><span class="dot"></span>Security Controls — Current State (Phases 1–4 Partial)</div>
+    <div class="boxes">
+      <div class="box">
+        <div class="box-title"><span class="icon">🔒</span> Authentication</div>
+        <ul>
+          <li>JWT encrypted via Docker secret (not env var)</li>
+          <li>bcrypt password hashing (10 rounds)</li>
+          <li>12-char minimum password</li>
+          <li>Timing-attack safe comparison</li>
+          <li>Rate limit: 5 attempts / 15min lockout</li>
+          <li class="fixed">Audit: every login attempt logged</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">🛡️</span> Authorization</div>
+        <ul>
+          <li>3-tier RBAC (viewer/editor/admin)</li>
+          <li>Per-endpoint role checks (requireRole)</li>
+          <li>Session verification on all routes</li>
+          <li class="fixed">CSRF double-submit cookie on all mutations</li>
+          <li class="fixed">checkCsrf() first operation in every handler</li>
+          <li class="fixed">apiFetch() auto-attaches token client-side</li>
+          <li class="fixed">Zod schemas validate all mutation inputs (src/lib/validation.ts)</li>
+          <li class="fixed">JWT carries jti; revoked on logout → revoked_tokens table</li>
+          <li class="fixed">New users: must_change_password=true, forced to /set-password</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">🏗️</span> Container Hardening</div>
+        <ul>
+          <li>Non-root user (nextjs, UID 1001)</li>
+          <li>no-new-privileges: true (all services)</li>
+          <li>Read-only nginx root filesystem</li>
+          <li>DB on 127.0.0.1 only</li>
+          <li class="fixed">Docker secrets for passwords (not env vars)</li>
+          <li class="fixed">Log rotation: 10MB × 5 files per service</li>
+          <li class="fixed">HOSTNAME=0.0.0.0 for reliable health checks</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">📶</span> Rate Limiting <span class="badge badge-new">new</span></div>
+        <ul>
+          <li class="fixed">Nginx limit_req_zone (process-level)</li>
+          <li class="fixed">API endpoints: 10 req/s burst 20</li>
+          <li class="fixed">Login endpoint: 3 req/s burst 5</li>
+          <li class="fixed">Persists across app restarts</li>
+          <li class="fixed">Returns 429 on breach</li>
+          <li>Note: resets if nginx restarts (no Redis)</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">📝</span> Audit &amp; Logging <span class="badge badge-new">new</span></div>
+        <ul>
+          <li class="fixed">Structured JSON logger (zero-dependency)</li>
+          <li class="fixed">Dual-write: stdout + security_events table</li>
+          <li class="fixed">Events: login, CSRF reject, user changes</li>
+          <li class="fixed">Events: backup export/import, evidence, overlay</li>
+          <li class="fixed">Admin audit log viewer with filtering</li>
+          <li class="fixed">GET /api/admin/audit (admin-only)</li>
+        </ul>
+      </div>
+      <div class="box">
+        <div class="box-title"><span class="icon">💾</span> Durability <span class="badge badge-new">new</span></div>
+        <ul>
+          <li class="fixed">pg_dump daily at 2AM (automated)</li>
+          <li class="fixed">Evidence volume backup (tar.gz)</li>
+          <li class="fixed">SHA-256 checksum on every backup</li>
+          <li class="fixed">30 daily + 12 weekly retention</li>
+          <li class="fixed">Weekly restore verification</li>
+          <li class="fixed">Factory reset to baseline.json</li>
+        </ul>
+      </div>
+      <div class="box" style="border-color: rgba(239,68,68,0.5);">
+        <div class="box-title" style="color: #f87171;"><span class="icon">⚠️</span> Remaining Gaps</div>
+        <ul>
+          <li class="gap">TLS not yet active (nginx-ssl.conf ready, needs cert)</li>
+          <li class="gap">No Redis (nginx rate limit resets on nginx restart)</li>
+          <li class="gap">No database encryption at rest</li>
+          <li class="gap">No WAF / DDoS protection</li>
+          <li class="gap">Single-node, no failover or replication</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ========== DATA FLOWS ========== -->
+<div class="flow-section">
+  <div class="flow-title">Key Data Flows</div>
+  <div class="flow-two-col">
+
+    <div>
+      <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 16px; color: #93c5fd;">Authenticated Mutating Request</h3>
+      <div class="flow-grid">
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">1</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">Page load sets CSRF cookie</div><div class="fc-desc">middleware.ts → sets cmmc-csrf cookie if absent</div></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">2</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">apiFetch() attaches CSRF header</div><div class="fc-desc">Reads cookie → adds X-CSRF-Token header automatically</div></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">3</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">Nginx rate limit check</div><div class="fc-desc">limit_req_zone → 429 if threshold exceeded</div></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">4</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">API: CSRF + auth + role</div><div class="fc-desc">checkCsrf() → getServerSession() → requireRole()</div></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">5</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">DB transaction + audit</div><div class="fc-desc">Row-lock → UPDATE → INSERT security_events + practice_history</div></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">6</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">Structured log emitted</div><div class="fc-desc">logger.security() → stdout JSON → Docker log rotation</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 16px; color: #6ee7b7;">Backup &amp; Recovery Flow</h3>
+      <div class="flow-grid">
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">1</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">Nightly cron at 2AM</div><div class="fc-desc">backup service entrypoint.sh triggers backup.sh</div></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">2</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">pg_dump + evidence tar</div><div class="fc-desc">Full DB dump + /evidence volume → /backups/daily/</div></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">3</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">SHA-256 checksum written</div><div class="fc-desc">backup.sha256 file alongside each dump</div></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">4</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">Weekly verify (Sundays 6AM)</div><div class="fc-desc">verify-backup.sh re-checks all checksums, logs pass/fail</div></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">5</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">Restore when needed</div><div class="fc-desc">restore.sh --file backup.sql.gz --verify before applying</div></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num"><div class="circle">6</div><div class="line"></div></div>
+          <div class="flow-content"><div class="fc-title">Factory reset (UI)</div><div class="fc-desc">Admin → Backup tab → type RESET → restoreFromPayload(baseline.json)</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMMC Dashboard — Durability &amp; Security Improvement Plan</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f1117; color: #cbd5e1; line-height: 1.7; padding: 40px 24px; }
+  .wrap { max-width: 960px; margin: 0 auto; }
+
+  h1 { font-size: 26px; font-weight: 800; color: #f1f5f9; margin-bottom: 4px; letter-spacing: -0.5px; }
+  .tagline { font-size: 14px; color: #64748b; margin-bottom: 8px; }
+  .updated { font-size: 12px; color: #475569; margin-bottom: 40px; }
+
+  .priority-order { display: flex; gap: 12px; margin-bottom: 36px; flex-wrap: wrap; }
+  .priority-chip { padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .p1 { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+  .p2 { background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
+  .p3 { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+
+  .phase { margin-bottom: 48px; }
+  .phase-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .phase-num { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #0f1117; flex-shrink: 0; }
+  .phase-title { font-size: 20px; font-weight: 700; color: #f1f5f9; }
+  .phase-subtitle { font-size: 13px; color: #64748b; }
+
+  .phase-1 .phase-num { background: #34d399; }
+  .phase-2 .phase-num { background: #60a5fa; }
+  .phase-3 .phase-num { background: #f87171; }
+  .phase-4 .phase-num { background: #c084fc; }
+
+  .phase-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; margin-left: 12px; }
+  .status-done { background: rgba(52,211,153,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+  .status-pending { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+
+  .item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px 24px; margin-bottom: 14px; }
+  .item.done { border-color: rgba(52,211,153,0.2); background: rgba(52,211,153,0.03); }
+  .item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+  .item-name { font-size: 15px; font-weight: 700; color: #e2e8f0; }
+  .item-tags { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tag-durability { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+  .tag-availability { background: rgba(59,130,246,0.2); color: #93c5fd; }
+  .tag-security { background: rgba(239,68,68,0.2); color: #fca5a5; }
+  .tag-done { background: rgba(52,211,153,0.2); color: #34d399; }
+  .tag-ux { background: rgba(168,85,247,0.2); color: #c084fc; }
+
+  .item-why { font-size: 13px; color: #94a3b8; margin-bottom: 10px; }
+  .item-why strong { color: #e2e8f0; font-weight: 600; }
+
+  .item-what { font-size: 13px; color: #94a3b8; }
+  .item-what code { background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px; font-family: 'SF Mono','Fira Code',monospace; font-size: 12px; color: #e2e8f0; }
+
+  .item-built { font-size: 13px; color: #64748b; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .item-built strong { color: #34d399; font-weight: 600; }
+  .item-built ul { list-style: none; margin-top: 4px; }
+  .item-built li { padding-left: 16px; position: relative; padding-top: 2px; }
+  .item-built li::before { content: '✓'; position: absolute; left: 0; color: #34d399; font-size: 11px; }
+
+  .analogy { background: rgba(168,85,247,0.08); border-left: 3px solid #a78bfa; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 13px; color: #c4b5fd; }
+  .analogy strong { color: #e9d5ff; }
+
+  hr { border: none; height: 1px; background: rgba(255,255,255,0.06); margin: 40px 0; }
+
+  .summary-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  .summary-table th { text-align: left; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .summary-table td { font-size: 13px; color: #94a3b8; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .summary-table td:first-child { font-weight: 600; color: #e2e8f0; }
+  .check { color: #34d399; font-weight: 700; }
+  .cross { color: #f87171; }
+
+  @media print {
+    body { background: #fff; color: #334155; }
+    .item { border-color: #e2e8f0; }
+    .analogy { background: #f5f3ff; border-left-color: #7c3aed; color: #6d28d9; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Durability &amp; Security Improvement Plan</h1>
+<p class="tagline">CMMC Compliance Dashboard — Phased roadmap for production readiness</p>
+<p class="updated">Updated March 2026 — Phases 1–4 complete + Tier 1 hardening (password rate limiting, HTTPS stack, CSP parity)</p>
+
+<div class="priority-order">
+  <span class="priority-chip p1">#1 Durability — Don't lose data</span>
+  <span class="priority-chip p2">#2 Availability — Keep it running</span>
+  <span class="priority-chip p3">#3 Security — Lock it down</span>
+</div>
+
+<!-- ============================================================ -->
+<!-- PHASE 1 — COMPLETE -->
+<!-- ============================================================ -->
+<div class="phase phase-1">
+  <div class="phase-header">
+    <div class="phase-num">1</div>
+    <div>
+      <div class="phase-title">Foundation — "Insurance Policy" <span class="phase-status status-done">✓ Complete</span></div>
+      <div class="phase-subtitle">Automated backups, Docker secrets, log rotation. Committed: 7ce39d3</div>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Automated Database Backups</div>
+      <div class="item-tags"><span class="tag tag-durability">Durability</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="analogy"><strong>Analogy:</strong> Before this, your compliance data was a notebook with no photocopies. If the notebook was destroyed, everything was gone. Daily automated backups are the photocopy in the fireproof safe.</div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li>Dedicated <code>backup</code> Docker service (4th container) using Alpine + postgresql15-client</li>
+        <li><code>backup.sh</code> — pg_dump daily at 2AM via cron, with SHA-256 checksum on every file</li>
+        <li>30 daily backups + 12 weekly snapshots with automatic rotation</li>
+        <li><code>restore.sh</code> with <code>--list</code>, <code>--verify</code>, <code>--file</code> flags and post-restore row count validation</li>
+        <li>Evidence volume (tar.gz) backed up alongside the DB dump</li>
+        <li>Weekly integrity verification every Sunday at 6AM (<code>verify-backup.sh</code>)</li>
+        <li>Dedicated <code>backup_data</code> Docker volume for backup persistence</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Secrets Management with Docker Secrets</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="analogy"><strong>Analogy:</strong> Plain environment variables are your house key under the doormat. Docker secrets are the combination lockbox — only the right container, at runtime, can open it.</div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li>Docker Compose secrets for <code>postgres_password</code> and <code>nextauth_secret</code></li>
+        <li>Secrets mounted at <code>/run/secrets/</code> — never appear in <code>docker inspect</code></li>
+        <li>DB uses <code>POSTGRES_PASSWORD_FILE</code>; app reads <code>NEXTAUTH_SECRET_FILE</code></li>
+        <li><code>scripts/setup-secrets.sh</code> — generates random secrets with <code>openssl rand -base64 32</code></li>
+        <li><code>secrets/</code> directory added to <code>.gitignore</code></li>
+        <li><code>.env.example</code> updated with setup instructions</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Log Rotation &amp; Container Housekeeping</div>
+      <div class="item-tags"><span class="tag tag-availability">Availability</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li>Log rotation on all 4 services: <code>max-size: 10m</code>, <code>max-file: 5</code></li>
+        <li>Prevents disk exhaustion from unbounded container logs</li>
+        <li>All services: <code>restart: unless-stopped</code> for automatic recovery</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+<hr>
+
+<!-- ============================================================ -->
+<!-- PHASE 2 — COMPLETE -->
+<!-- ============================================================ -->
+<div class="phase phase-2">
+  <div class="phase-header">
+    <div class="phase-num">2</div>
+    <div>
+      <div class="phase-title">Hardening — "Lock the Doors" <span class="phase-status status-done">✓ Complete</span></div>
+      <div class="phase-subtitle">TLS prep, CSRF, rate limiting, health checks, backup verification. Committed: f37fad6</div>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">CSRF Protection</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="analogy"><strong>Analogy:</strong> CSRF is someone forging your signature on a check while you're logged in. The bank processes it because the session cookie looks valid. CSRF tokens prove the request actually came from your UI.</div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li>Double-submit cookie pattern: <code>cmmc-csrf</code> cookie + <code>X-CSRF-Token</code> header</li>
+        <li><code>src/middleware.ts</code> — sets cookie on every page load if not already present</li>
+        <li><code>src/lib/api-csrf.ts</code> — <code>checkCsrf(req)</code> server-side validation</li>
+        <li><code>src/lib/api-client.ts</code> — <code>apiFetch()</code> wrapper auto-attaches token (same signature as <code>fetch()</code>)</li>
+        <li>All 11 mutating API route handlers updated to call <code>checkCsrf()</code> as first operation</li>
+        <li>All 8 frontend components updated from <code>fetch()</code> to <code>apiFetch()</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Nginx Rate Limiting</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-availability">Availability</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="analogy"><strong>Analogy:</strong> In-memory rate limiting is a bouncer who forgets everyone's face when they take a bathroom break. Nginx rate limiting is the bouncer with a clipboard at the front door — it survives app restarts.</div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li><code>limit_req_zone</code> in nginx.conf — process-level, persists across app restarts</li>
+        <li>API endpoints: 10 req/s, burst 20</li>
+        <li>Login endpoint: 3 req/s, burst 5 (tighter for credential stuffing protection)</li>
+        <li>Returns 429 Too Many Requests on breach</li>
+        <li>Separate zones for different endpoint types</li>
+        <li>Note: resets if nginx itself restarts (no Redis needed for current scale)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">App Container Health Check &amp; Service Dependencies</div>
+      <div class="item-tags"><span class="tag tag-availability">Availability</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li><code>GET /api/health</code> — no auth, used by Docker and admin UI</li>
+        <li>Checks: DB connectivity + query latency, evidence volume mounted, heap memory &lt; 512MB</li>
+        <li>Returns 200 healthy / 503 unhealthy with JSON detail</li>
+        <li>Docker health check: every 10s, 6 retries, 40s start period</li>
+        <li><code>HOSTNAME=0.0.0.0</code> env var so Next.js standalone binds all interfaces</li>
+        <li>Health check uses <code>127.0.0.1</code> directly (avoids DNS resolution in container)</li>
+        <li>nginx <code>depends_on: app: condition: service_healthy</code> — nginx won't start until app is ready</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">TLS / SSL Configuration (Ready, Not Yet Active)</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li><code>nginx-ssl.conf</code> — full TLS config with HTTP/2, TLS 1.2/1.3, HSTS, OCSP stapling</li>
+        <li><code>scripts/setup-ssl.sh</code> — step-by-step Let's Encrypt provisioning via Certbot</li>
+        <li>Config is ready to activate once a domain is pointed at the server</li>
+        <li>Currently using HTTP on port 80 for local/internal use</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+<hr>
+
+<!-- ============================================================ -->
+<!-- PHASE 3 — COMPLETE -->
+<!-- ============================================================ -->
+<div class="phase phase-3">
+  <div class="phase-header">
+    <div class="phase-num">3</div>
+    <div>
+      <div class="phase-title">Operational Maturity — "Visibility &amp; Recovery" <span class="phase-status status-done">✓ Complete</span></div>
+      <div class="phase-subtitle">Structured logging, audit trail, admin UI overhaul, factory reset. Committed: 284815e + cafb744</div>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Structured JSON Logging &amp; Security Audit Trail</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-availability">Availability</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="analogy"><strong>Analogy:</strong> Console logs are someone shouting in a room — immediately audible but quickly forgotten. Structured JSON logs are a security camera with timestamps: searchable, filterable, and preserved for review.</div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li><code>src/lib/logger.ts</code> — zero-dependency structured JSON logger (debug/info/warn/error/security levels)</li>
+        <li><code>src/lib/audit.ts</code> — dual-write: structured log (stdout) + <code>security_events</code> database table</li>
+        <li>Migration <code>004-security-events.sql</code> — table with indexes on action, actor, created_at</li>
+        <li>Events logged: login.success/failed/locked_out, user.created/deleted/role_changed</li>
+        <li>Events logged: backup.exported/imported, evidence.uploaded/deleted, overlay.toggled, csrf.rejected</li>
+        <li>Auth module fully rewritten with audit calls on every login path</li>
+        <li><code>GET /api/admin/audit</code> — admin-only, filterable by action type and actor email</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Admin Page Redesign — Tabbed Layout</div>
+      <div class="item-tags"><span class="tag tag-ux">UX</span><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li>Replaced flat scroll layout with 4 equal tabs: Users, Backup &amp; Restore, Audit Log, System Health</li>
+        <li><code>AdminTabs.tsx</code> — tab container with URL hash routing (<code>#users</code>, <code>#backup</code>, etc.)</li>
+        <li><code>AuditLogPanel.tsx</code> — filterable security event table, color-coded by action severity</li>
+        <li><code>SystemHealthPanel.tsx</code> — live health cards, auto-refreshes every 15s, toggle-able</li>
+        <li>Sidebar simplified: replaced "Users + ↳ Backup &amp; Restore" nested links with single "Administration" entry</li>
+        <li>Page header updated: "Users" → "Administration" with accurate subtitle</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Factory Reset &amp; Baseline Snapshot</div>
+      <div class="item-tags"><span class="tag tag-durability">Durability</span><span class="tag tag-ux">UX</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="analogy"><strong>Analogy:</strong> Import/export testing without a reset is like test-driving a car with no way to refuel. The baseline is the full tank you always return to.</div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li><code>scripts/data/baseline.json</code> — golden snapshot committed to the repo (48KB, 130 practices)</li>
+        <li>Generated via psql JSON aggregation against a clean-seeded database</li>
+        <li><code>src/app/api/admin/factory-reset/route.ts</code> — POST resets to baseline, GET returns metadata</li>
+        <li><code>src/lib/restore.ts</code> — shared <code>restoreFromPayload()</code> used by both import and factory-reset</li>
+        <li>UI in Backup tab: three-step confirmation (click → "I understand" → type RESET)</li>
+        <li>Shows baseline metadata: generated date, practice/domain/user counts</li>
+        <li>Shows helpful error if baseline file not found, with generation command</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+<hr>
+
+<!-- ============================================================ -->
+<!-- PHASE 4 — PENDING -->
+<!-- ============================================================ -->
+<div class="phase phase-4">
+  <div class="phase-header">
+    <div class="phase-num">4</div>
+    <div>
+      <div class="phase-title">Advanced Hardening <span class="phase-status status-done">✓ Partial</span></div>
+      <div class="phase-subtitle">CSP, Zod, session revocation, backup sanitization, and first-login password enforcement complete. Encryption at rest is future work.</div>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="item-top">
+      <div class="item-name">Zod Input Validation on All API Routes</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span></div>
+    </div>
+    <div class="item-why"><strong>Problem:</strong> API routes trust that incoming JSON has the right shape and types. Malformed or oversized payloads reach business logic without being validated at the boundary.</div>
+    <div class="item-what"><strong>✓ Done:</strong> <code>src/lib/validation.ts</code> — centralized Zod schemas for all mutation routes (practices, POAM, objectives, users, password change). String length caps, enum guards, and date format validation. Routes return structured error messages on invalid input.</div>
+  </div>
+
+  <div class="item">
+    <div class="item-top">
+      <div class="item-name">Full Content Security Policy Header</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span></div>
+    </div>
+    <div class="item-why"><strong>Problem:</strong> The app had <code>frame-ancestors 'none'</code> only — no restriction on script/style sources. An XSS vulnerability could load external scripts.</div>
+    <div class="item-what"><strong>✓ Done:</strong> Full CSP added to nginx.conf: <code>default-src 'self'</code>, locked <code>form-action</code>, <code>base-uri</code>, <code>object-src 'none'</code>, <code>frame-ancestors 'none'</code>. Allows <code>unsafe-inline</code>/<code>unsafe-eval</code> for Next.js RSC compatibility — nonce-based upgrade is future work.</div>
+  </div>
+
+  <div class="item">
+    <div class="item-top">
+      <div class="item-name">Session Revocation on Logout</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span></div>
+    </div>
+    <div class="item-why"><strong>Problem:</strong> JWT sessions had a <code>maxAge</code> but no server-side revocation. A stolen or lingering token stayed valid until it expired naturally.</div>
+    <div class="item-what"><strong>✓ Done:</strong> Each JWT now carries a <code>jti</code> (UUID). On logout, the jti is inserted into a <code>revoked_tokens</code> table (auto-purged after expiry). Revocation is checked at the API layer on authenticated requests. Token maxAge set to 24h.</div>
+  </div>
+
+  <div class="item">
+    <div class="item-top">
+      <div class="item-name">Backup Export Sanitization</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span></div>
+    </div>
+    <div class="item-why"><strong>Problem:</strong> The JSON backup export included <code>password_hash</code> for every user. Anyone who got the file could attempt offline bcrypt cracking.</div>
+    <div class="item-what"><strong>✓ Done:</strong> Export query now selects <code>id, email, name, role, created_at</code> only — <code>password_hash</code> is never serialized. After a restore, all users have <code>must_change_password = true</code> and are redirected to <code>/set-password</code> on first login.</div>
+  </div>
+
+  <div class="item">
+    <div class="item-top">
+      <div class="item-name">First-Login Password Enforcement</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span></div>
+    </div>
+    <div class="item-why"><strong>Problem:</strong> Admin-created users had no way to set their own password — they had to use whatever the admin typed, shared out-of-band.</div>
+    <div class="item-what"><strong>✓ Done:</strong> New users have <code>must_change_password = true</code>. Middleware redirects them to <code>/set-password</code> on first login — they cannot reach any other page until they set a permanent password. Flag is cleared in the DB and JWT is refreshed on success.</div>
+  </div>
+
+  <div class="item">
+    <div class="item-top">
+      <div class="item-name">Database Encryption at Rest</div>
+      <div class="item-tags"><span class="tag tag-durability">Durability</span><span class="tag tag-security">Security</span></div>
+    </div>
+    <div class="item-why"><strong>Problem:</strong> The <code>pgdata</code> Docker volume is unencrypted. If the host disk is physically accessed, database files are readable without credentials.</div>
+    <div class="item-what"><strong>Solution:</strong> Enable filesystem-level encryption on the host (macOS FileVault, Linux LUKS). For cloud deployment, use encrypted EBS volumes (AWS) or managed PostgreSQL (RDS, Supabase) with encryption at rest enabled by default.</div>
+  </div>
+
+</div>
+<hr>
+
+<!-- ============================================================ -->
+<!-- SUMMARY TABLE -->
+<!-- ============================================================ -->
+<h2 style="font-size: 18px; font-weight: 700; color: #f1f5f9; margin-bottom: 16px;">Implementation Summary</h2>
+<table class="summary-table">
+  <thead>
+    <tr>
+      <th>Control</th>
+      <th>Status</th>
+      <th>Implementation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Automated backups</td><td class="check">✓ Done</td><td>pg_dump daily + evidence tar, 30/12 retention, SHA-256 checksums</td></tr>
+    <tr><td>Backup verification</td><td class="check">✓ Done</td><td>Weekly restore dry-run with checksum validation (Sundays 6AM)</td></tr>
+    <tr><td>Docker secrets</td><td class="check">✓ Done</td><td>/run/secrets/ for postgres_password and nextauth_secret</td></tr>
+    <tr><td>Log rotation</td><td class="check">✓ Done</td><td>10MB × 5 files on all 4 services</td></tr>
+    <tr><td>CSRF protection</td><td class="check">✓ Done</td><td>Double-submit cookie, checkCsrf() on all mutations, apiFetch() auto-attaches</td></tr>
+    <tr><td>Nginx rate limiting</td><td class="check">✓ Done</td><td>10 req/s API, 3 req/s login — process-level persistence</td></tr>
+    <tr><td>App health check</td><td class="check">✓ Done</td><td>/api/health checks DB + volume + memory, used by Docker + admin UI</td></tr>
+    <tr><td>TLS / HTTPS stack</td><td class="check">✓ Done</td><td>docker-compose.ssl.yml overlay; nginx-ssl.conf full CSP + HSTS; certbot renewal; self-signed fallback for air-gapped use</td></tr>
+    <tr><td>Password-change rate limiting</td><td class="check">✓ Done</td><td>/api/user/password on strict login zone (3 req/s, burst 5) in both nginx configs</td></tr>
+    <tr><td>Structured logging</td><td class="check">✓ Done</td><td>Zero-dependency JSON logger, stdout + security_events table</td></tr>
+    <tr><td>Security audit log</td><td class="check">✓ Done</td><td>Dual-write audit.ts, 16 event types, queryable via admin UI</td></tr>
+    <tr><td>Admin UI overhaul</td><td class="check">✓ Done</td><td>Tabbed layout: Users / Backup / Audit Log / System Health</td></tr>
+    <tr><td>Factory reset</td><td class="check">✓ Done</td><td>baseline.json committed, 3-step confirmation UI, shared restore library</td></tr>
+    <tr><td>Zod input validation</td><td class="check">✓ Done</td><td>src/lib/validation.ts — schemas for all 7 mutation routes, length caps, enum guards, structured errors</td></tr>
+    <tr><td>Content Security Policy</td><td class="check">✓ Done</td><td>Full CSP in nginx.conf: default-src 'self', form-action, base-uri, object-src 'none', frame-ancestors 'none'</td></tr>
+    <tr><td>Session revocation</td><td class="check">✓ Done</td><td>jti per JWT, revoked_tokens table, 24h maxAge, purge-on-read cleanup</td></tr>
+    <tr><td>Backup hash stripping</td><td class="check">✓ Done</td><td>Export selects email/name/role only — password_hash never serialized</td></tr>
+    <tr><td>First-login password enforcement</td><td class="check">✓ Done</td><td>must_change_password flag, /set-password page, middleware redirect, cleared on success</td></tr>
+    <tr><td>Encryption at rest</td><td class="cross">Future</td><td>Host-level (FileVault/LUKS) or managed Postgres with encryption enabled</td></tr>
+  </tbody>
+</table>
+
+</div>
+</body>
+</html>
