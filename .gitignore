@@ -22,6 +22,7 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+__pycache__/
 
 # Editor
 .vscode/
@@ -29,3 +30,6 @@ yarn-error.log*
 
 # Brainstorming session files
 .superpowers/
+
+# Local git worktrees
+.worktrees/

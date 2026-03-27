@@ -12,7 +12,8 @@
     "set-role": "node --env-file=.env ./node_modules/.bin/tsx scripts/set-role.ts",
     "export-data": "node --env-file=.env ./node_modules/.bin/tsx scripts/export-data.ts",
     "import-data": "node --env-file=.env ./node_modules/.bin/tsx scripts/import-data.ts",
-    "seed-overlays": "node --env-file=.env ./node_modules/.bin/tsx scripts/seed-overlays.ts"
+    "seed-overlays": "node --env-file=.env ./node_modules/.bin/tsx scripts/seed-overlays.ts",
+    "validate-db": "node --env-file=.env ./node_modules/.bin/tsx scripts/validate-db.ts"
   },
   "dependencies": {
     "next": "14.2.18",
