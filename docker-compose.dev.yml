@@ -38,6 +38,7 @@ services:
       - evidence-dev:/data/evidence
     environment:
       NODE_ENV: development
+      NEXTAUTH_URL: http://localhost:3001
 
   nginx:
     profiles:
