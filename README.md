@@ -127,7 +127,7 @@ Create their account via the Admin panel or `create-admin.sh`. They receive a te
 - **Docker Compose** — four services: `db`, `app`, `nginx`, `backup`
 - **Automated backups** — nightly pg_dump + evidence tar.gz, 30-day daily retention, weekly verification
 
-For a full architecture diagram see [cmmc-architecture.html](../cmmc-architecture.html).
+[![Architecture diagram](docs/screenshots/architecture.png)](docs/architecture.html)
 
 ---
 

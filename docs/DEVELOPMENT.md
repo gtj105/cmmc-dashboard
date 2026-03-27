@@ -1,60 +1,95 @@
 # Development Guide
 
-This document is for developers working on the CMMC Dashboard codebase. It describes how to run a live-reload dev instance that is **completely isolated** from the stable internal runtime.
+For developers working on the CMMC Dashboard codebase. The dev stack has live reload and is **completely isolated** from any stable runtime — you can run both at the same time without touching each other's data.
 
 ---
 
-## How the Two-Lane Model Works
+## Getting Started (First Time)
 
-There are two independent stacks:
+### 1. Prerequisites
 
-| Stack | Compose project | Port | Volumes | Started with |
-|---|---|---|---|---|
-| **Runtime** (stable) | `cmmc` (default) | 80 | `pgdata`, `evidence_data` | `start-runtime.sh` |
-| **Dev** (live-reload) | `cmmc-dev` | 3001 | `pgdata-dev`, `evidence-dev` | `start-dev.sh` |
+- **Docker Desktop** (Mac/Windows) or Docker Engine + Compose plugin (Linux) — must be running
+- **Node.js 20+** — only needed on the host for IDE type support (`npm install`). The app itself runs inside Docker.
+- **Python 3.10+** — only needed to run the static test suite. Pre-installed on most systems.
+- **Git**
 
-They never share a database or evidence volume. You can run both simultaneously without interference.
+Verify:
 
----
+```bash
+docker --version        # Docker version 24+
+docker compose version  # v2.x
+node --version          # v20+
+python3 --version       # 3.10+
+```
 
-## Prerequisites
+### 2. Clone and install host dependencies
 
-- Docker Desktop or Docker Engine + Compose
-- Node.js 20 (only needed to install dependencies on the host for IDE support — not for running the app)
+```bash
+git clone https://github.com/gtj105/cmmc-dashboard.git
+cd cmmc-dashboard/dashboard
 
----
+# Install npm deps on the host — needed for IDE autocomplete/type-checking only
+npm install
+```
 
-## Start the Dev Instance
+### 3. Set up secrets
+
+```bash
+bash ./scripts/setup-secrets.sh
+```
+
+This creates `secrets/postgres_password.txt` and `secrets/nextauth_secret.txt` with random values. These files are `.gitignore`d and never committed. If the secrets directory already exists (e.g. from a prior bootstrap), skip this step.
+
+### 4. Start the dev instance
 
 ```bash
 bash ./scripts/start-dev.sh
 ```
 
-The app starts on **http://localhost:3001** with live reload. Source code is mounted into the container so edits appear immediately without rebuilding the image.
+Wait for the `app` container to print `ready started server on 0.0.0.0:3000`. First run takes 2–3 minutes while Docker builds the image. Subsequent starts are under 10 seconds.
 
-This uses `docker-compose.dev.yml` as an overlay on top of `docker-compose.yml`. The dev overlay:
+Dev app is at: **http://localhost:3001**
 
-- Binds the source directory into the container
-- Runs `npm run dev` instead of the production server
-- Uses separate volumes (`pgdata-dev`, `evidence-dev`)
-- Exposes port 3001 instead of 80
-- Disables the nginx and backup sidecars (not needed in dev)
+### 5. Seed the database
 
----
-
-## Seed the Dev Database
-
-On first start the dev DB is empty. Run the seed inside the dev container:
+The dev database starts empty. Run the seed once:
 
 ```bash
 docker compose -p cmmc-dev -f docker-compose.yml -f docker-compose.dev.yml exec app npm run seed
 ```
 
+This creates the schema, inserts all 110 CMMC practices + 20 ITAR controls + 4 overlay packs, and creates a default admin user (`admin@localhost` / `admin`).
+
+### 6. Start editing
+
+Open the `src/` directory in your editor. Changes to any `.tsx` or `.ts` file under `src/` are picked up immediately via Next.js hot reload — no container restart needed.
+
+Schema changes require a seed re-run (see [Reset the Dev Database](#reset-the-dev-database)).
+
+---
+
+## How the Two-Lane Model Works
+
+There are two independent stacks that never share state:
+
+| Stack | Compose project | Port | Volumes | Started with |
+|---|---|---|---|---|
+| **Runtime** (stable, production-like) | `cmmc` (default) | 80 | `pgdata`, `evidence_data` | `start-runtime.sh` |
+| **Dev** (live-reload) | `cmmc-dev` | 3001 | `pgdata-dev`, `evidence-dev` | `start-dev.sh` |
+
+You can run both simultaneously. The dev overlay (`docker-compose.dev.yml`):
+
+- Mounts `src/` into the container so edits hot-reload without a rebuild
+- Runs `npm run dev` instead of the production binary
+- Uses its own `pgdata-dev` and `evidence-dev` volumes
+- Exposes port 3001 instead of 80
+- Disables nginx and backup sidecars (not needed in dev)
+
 ---
 
 ## Reset the Dev Database
 
-To wipe the dev database and start fresh:
+Wipe dev data and start fresh — the production runtime is never touched:
 
 ```bash
 docker compose -p cmmc-dev -f docker-compose.yml -f docker-compose.dev.yml down -v
@@ -62,20 +97,18 @@ bash ./scripts/start-dev.sh
 docker compose -p cmmc-dev -f docker-compose.yml -f docker-compose.dev.yml exec app npm run seed
 ```
 
-This only affects the dev volumes (`pgdata-dev`, `evidence-dev`). The production runtime is untouched.
-
 ---
 
 ## Running Tests
 
-Tests are static (no live DB required) and run from the project root:
+Tests are static — no running database or Docker required:
 
 ```bash
-cd dashboard
+# Run the full suite from the repo root
 python3 -m unittest discover -s tests -v
 ```
 
-Or target specific suites:
+Or target a specific module:
 
 ```bash
 # Deployment config (NEXTAUTH_URL, HOSTNAME, CSRF, Docker env)
@@ -88,19 +121,31 @@ python3 -m unittest tests.test_data_invariants -v
 python3 -m unittest tests.test_auth_flow_config -v
 ```
 
+Post-deploy smoke test (requires the runtime stack to be running):
+
+```bash
+bash ./scripts/smoke-test.sh
+```
+
 ---
 
 ## Key Files
 
 | File | Purpose |
 |---|---|
-| `docker-compose.yml` | Base runtime config |
-| `docker-compose.dev.yml` | Dev overlay (mounted source, port 3001, isolated volumes) |
+| `docker-compose.yml` | Base service definitions (db, app, nginx, backup) |
+| `docker-compose.dev.yml` | Dev overlay — mounted source, port 3001, isolated volumes |
+| `docker-compose.ssl.yml` | TLS overlay for production — port 443, Let's Encrypt certs |
 | `scripts/start-dev.sh` | Start the dev instance |
 | `scripts/start-runtime.sh` | Start the production runtime |
-| `src/` | Next.js app source |
-| `scripts/seed.ts` | Schema creation and initial data |
+| `scripts/bootstrap.sh` | One-shot production setup (secrets + seed + start) |
+| `scripts/setup-secrets.sh` | Generate secrets only |
+| `scripts/seed.ts` | Schema creation + initial practice/ITAR/overlay data |
 | `scripts/validate-db.ts` | DB invariant checker |
+| `src/` | Next.js app source |
+| `src/lib/auth.ts` | NextAuth config, JWT logic, session revocation |
+| `src/lib/validation.ts` | Zod schemas for all API mutation routes |
+| `src/middleware.ts` | Auth enforcement + must-change-password redirect |
 | `tests/` | Python-based static test suite |
 
 ---
@@ -109,16 +154,22 @@ python3 -m unittest tests.test_auth_flow_config -v
 
 The Dockerfile has three stages:
 
-- `deps` — installs npm dependencies (used by dev for live-reload)
-- `builder` — builds the Next.js standalone output
-- `runner` — minimal production image
+- `deps` — installs npm dependencies; used by the dev compose via `target: deps`
+- `builder` — compiles the Next.js standalone output
+- `runner` — minimal production image, just the compiled app
 
-The dev compose uses `target: deps` so the container has node_modules but skips the full production build.
+The dev compose targets `deps` so the container has `node_modules` but skips the full build, which is what makes hot reload work.
 
 ---
 
 ## Keeping Dev Isolated from Runtime
 
-The most important rule: **never run dev tooling against the production compose project**. Always include `-p cmmc-dev -f docker-compose.yml -f docker-compose.dev.yml` when targeting the dev stack, or use the provided wrapper scripts.
+Never run dev tooling against the production compose project. Always include `-p cmmc-dev -f docker-compose.yml -f docker-compose.dev.yml` when targeting dev, or use the wrapper scripts.
 
-The wrapper scripts (`start-runtime.sh`, `stop-runtime.sh`) target the default compose project and will never touch dev volumes.
+The `start-runtime.sh` and `stop-runtime.sh` scripts target the default `cmmc` project and will never touch dev volumes.
+
+A quick sanity check — lists containers for the dev project only:
+
+```bash
+docker compose -p cmmc-dev -f docker-compose.yml -f docker-compose.dev.yml ps
+```
