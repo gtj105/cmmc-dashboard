@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import sql from '@/lib/db'
 
 /**
@@ -7,24 +8,104 @@ import sql from '@/lib/db'
  * Runs inside a single transaction — either everything succeeds or nothing changes.
  */
 
-export type RestorePayload = {
-  users: Array<Record<string, unknown>>
-  domains: Array<Record<string, unknown>>
-  practices: Array<Record<string, unknown>>
-  poam_items: Array<Record<string, unknown>>
-  practice_history: Array<Record<string, unknown>>
-  overlay_pack_states?: Array<{ key: string; enabled: boolean }>
-  overlay_validations?: Array<Record<string, unknown>>
-}
+// ─── Row schemas ─────────────────────────────────────────────────────────────
+
+const UserRowSchema = z.object({
+  id: z.number().int().positive(),
+  email: z.string().email(),
+  name: z.string(),
+  role: z.enum(['viewer', 'editor', 'admin']).default('viewer'),
+  created_at: z.string(),
+  // password_hash intentionally excluded — never restored from backups
+})
+
+const DomainRowSchema = z.object({
+  id: z.number().int().positive(),
+  name: z.string(),
+  abbreviation: z.string(),
+  framework: z.string(),
+  description: z.string(),
+})
+
+const PracticeRowSchema = z.object({
+  id: z.number().int().positive(),
+  domain_id: z.number().int().positive(),
+  framework: z.string(),
+  practice_id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  status: z.string(),
+  risk_level: z.string(),
+  owner: z.string().nullable().optional(),
+  due_date: z.string().nullable().optional(),
+  evidence_exists: z.boolean().default(false),
+  notes: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+const PoamItemRowSchema = z.object({
+  id: z.number().int().positive(),
+  practice_id: z.string().nullable().optional(),
+  finding: z.string(),
+  responsible_individual: z.string().nullable().optional(),
+  resources_required: z.string().nullable().optional(),
+  scheduled_completion: z.string().nullable().optional(),
+  milestone_progress: z.number().default(0),
+  status: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+const PracticeHistoryRowSchema = z.object({
+  id: z.number().int().positive(),
+  practice_id: z.string(),
+  field_changed: z.string(),
+  old_value: z.string().nullable().optional(),
+  new_value: z.string().nullable().optional(),
+  changed_by: z.string(),
+  changed_at: z.string(),
+})
+
+const OverlayPackStateSchema = z.object({
+  key: z.string(),
+  enabled: z.boolean(),
+})
+
+const OverlayValidationRowSchema = z.object({
+  id: z.number().int().positive(),
+  overlay_mapping_id: z.number().int().positive(),
+  validated: z.boolean(),
+  resolved_inheritance_type: z.string().nullable().optional(),
+  validated_by: z.string().nullable().optional(),
+  validated_at: z.string().nullable().optional(),
+  validation_notes: z.string().nullable().optional(),
+})
+
+const RestorePayloadSchema = z.object({
+  users: z.array(UserRowSchema),
+  domains: z.array(DomainRowSchema),
+  practices: z.array(PracticeRowSchema),
+  poam_items: z.array(PoamItemRowSchema),
+  practice_history: z.array(PracticeHistoryRowSchema),
+  overlay_pack_states: z.array(OverlayPackStateSchema).optional(),
+  overlay_validations: z.array(OverlayValidationRowSchema).optional(),
+})
+
+export type RestorePayload = z.infer<typeof RestorePayloadSchema>
+
+// ─── Validation ───────────────────────────────────────────────────────────────
 
 export function validatePayload(payload: unknown): asserts payload is RestorePayload {
-  if (!payload || typeof payload !== 'object') throw new Error('Invalid backup file')
-  for (const key of ['users', 'domains', 'practices', 'poam_items', 'practice_history']) {
-    if (!Array.isArray((payload as Record<string, unknown>)[key])) {
-      throw new Error(`Backup file is missing required section: ${key}`)
-    }
+  const result = RestorePayloadSchema.safeParse(payload)
+  if (!result.success) {
+    const firstIssue = result.error.issues[0]
+    const path = firstIssue.path.join('.')
+    throw new Error(`Invalid backup file: ${path ? path + ': ' : ''}${firstIssue.message}`)
   }
 }
+
+// ─── Restore ──────────────────────────────────────────────────────────────────
 
 export async function restoreFromPayload(parsed: RestorePayload): Promise<void> {
   await sql.begin(async (tx) => {
@@ -33,25 +114,22 @@ export async function restoreFromPayload(parsed: RestorePayload): Promise<void> 
     // Wipe existing data in dependency order
     await q`TRUNCATE practice_history, poam_items, practices, domains, users RESTART IDENTITY CASCADE`
 
-    // Backups no longer include password_hash (stripped at export time).
-    // Restored users get a random locked hash and must_change_password=true
-    // so they are forced to set a new password on first login.
+    // Always use a locked hash — never restore password_hash from backup files.
+    // Restored users must set a new password on first login.
     const LOCKED_HASH = '$2b$10$lockedXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
     for (const user of parsed.users) {
-      const hash = (user.password_hash as string | undefined) ?? LOCKED_HASH
-      const mustChange = !user.password_hash // no hash in file → force reset
       await q`
         INSERT INTO users (id, email, password_hash, name, role, must_change_password, created_at)
-        VALUES (${user.id as number}, ${user.email as string}, ${hash},
-                ${user.name as string}, ${(user.role as string) ?? 'viewer'},
-                ${mustChange}, ${user.created_at as string})
+        VALUES (${user.id}, ${user.email}, ${LOCKED_HASH},
+                ${user.name}, ${user.role},
+                ${true}, ${user.created_at})
       `
     }
     for (const domain of parsed.domains) {
       await q`
         INSERT INTO domains (id, name, abbreviation, framework, description)
-        VALUES (${domain.id as number}, ${domain.name as string}, ${domain.abbreviation as string},
-                ${domain.framework as string}, ${domain.description as string})
+        VALUES (${domain.id}, ${domain.name}, ${domain.abbreviation},
+                ${domain.framework}, ${domain.description})
       `
     }
     for (const practice of parsed.practices) {
@@ -59,12 +137,12 @@ export async function restoreFromPayload(parsed: RestorePayload): Promise<void> 
         INSERT INTO practices (id, domain_id, framework, practice_id, title, description, status,
                                risk_level, owner, due_date, evidence_exists, notes, created_at, updated_at)
         VALUES (
-          ${practice.id as number}, ${practice.domain_id as number}, ${practice.framework as string},
-          ${practice.practice_id as string}, ${practice.title as string}, ${practice.description as string},
-          ${practice.status as string}, ${practice.risk_level as string},
-          ${(practice.owner as string | null) ?? null}, ${(practice.due_date as string | null) ?? null},
-          ${Boolean(practice.evidence_exists)}, ${(practice.notes as string | null) ?? null},
-          ${practice.created_at as string}, ${practice.updated_at as string}
+          ${practice.id}, ${practice.domain_id}, ${practice.framework},
+          ${practice.practice_id}, ${practice.title}, ${practice.description},
+          ${practice.status}, ${practice.risk_level},
+          ${practice.owner ?? null}, ${practice.due_date ?? null},
+          ${Boolean(practice.evidence_exists)}, ${practice.notes ?? null},
+          ${practice.created_at}, ${practice.updated_at}
         )
       `
     }
@@ -73,12 +151,12 @@ export async function restoreFromPayload(parsed: RestorePayload): Promise<void> 
         INSERT INTO poam_items (id, practice_id, finding, responsible_individual, resources_required,
                                 scheduled_completion, milestone_progress, status, created_at, updated_at)
         VALUES (
-          ${item.id as number}, ${(item.practice_id as string | null) ?? null}, ${item.finding as string},
-          ${(item.responsible_individual as string | null) ?? null},
-          ${(item.resources_required as string | null) ?? null},
-          ${(item.scheduled_completion as string | null) ?? null},
-          ${item.milestone_progress as number}, ${item.status as string},
-          ${item.created_at as string}, ${item.updated_at as string}
+          ${item.id}, ${item.practice_id ?? null}, ${item.finding},
+          ${item.responsible_individual ?? null},
+          ${item.resources_required ?? null},
+          ${item.scheduled_completion ?? null},
+          ${item.milestone_progress}, ${item.status},
+          ${item.created_at}, ${item.updated_at}
         )
       `
     }
@@ -86,9 +164,9 @@ export async function restoreFromPayload(parsed: RestorePayload): Promise<void> 
       await q`
         INSERT INTO practice_history (id, practice_id, field_changed, old_value, new_value, changed_by, changed_at)
         VALUES (
-          ${entry.id as number}, ${entry.practice_id as string}, ${entry.field_changed as string},
-          ${(entry.old_value as string | null) ?? null}, ${(entry.new_value as string | null) ?? null},
-          ${entry.changed_by as string}, ${entry.changed_at as string}
+          ${entry.id}, ${entry.practice_id}, ${entry.field_changed},
+          ${entry.old_value ?? null}, ${entry.new_value ?? null},
+          ${entry.changed_by}, ${entry.changed_at}
         )
       `
     }
@@ -115,11 +193,11 @@ export async function restoreFromPayload(parsed: RestorePayload): Promise<void> 
       await q`
         INSERT INTO overlay_validations (id, overlay_mapping_id, validated, resolved_inheritance_type, validated_by, validated_at, validation_notes)
         VALUES (
-          ${v.id as number}, ${v.overlay_mapping_id as number}, ${v.validated as boolean},
-          ${(v.resolved_inheritance_type as string | null) ?? null},
-          ${(v.validated_by as string | null) ?? null},
-          ${(v.validated_at as string | null) ?? null},
-          ${(v.validation_notes as string | null) ?? null}
+          ${v.id}, ${v.overlay_mapping_id}, ${v.validated},
+          ${v.resolved_inheritance_type ?? null},
+          ${v.validated_by ?? null},
+          ${v.validated_at ?? null},
+          ${v.validation_notes ?? null}
         )
       `
     }
@@ -127,7 +205,8 @@ export async function restoreFromPayload(parsed: RestorePayload): Promise<void> 
       await q`SELECT setval('overlay_validations_id_seq', COALESCE((SELECT MAX(id) FROM overlay_validations), 1))`
     }
 
-    // Clear security events (audit log) — factory reset should start with a clean slate
-    await q`TRUNCATE security_events RESTART IDENTITY`
+    // NOTE: security_events (audit log) is NOT truncated here.
+    // Factory reset truncates it explicitly in the factory-reset route.
+    // Normal backup imports preserve the audit trail.
   })
 }

@@ -22,6 +22,7 @@ export type AuditAction =
   | 'user.password_changed'
   | 'backup.exported'
   | 'backup.imported'
+  | 'factory.reset'
   | 'practice.updated'
   | 'evidence.uploaded'
   | 'evidence.deleted'

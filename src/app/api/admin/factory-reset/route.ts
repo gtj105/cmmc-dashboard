@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import { audit, getClientIp } from '@/lib/audit'
 import { validatePayload, restoreFromPayload } from '@/lib/restore'
+import sql from '@/lib/db'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -55,6 +56,8 @@ export async function POST(req: NextRequest) {
 
   try {
     await restoreFromPayload(parsed)
+    // Factory reset clears the audit log — start clean
+    await sql`TRUNCATE security_events RESTART IDENTITY`
   } catch (err) {
     console.error('Factory reset failed:', err)
     return NextResponse.json(
@@ -64,7 +67,7 @@ export async function POST(req: NextRequest) {
   }
 
   await audit({
-    action: 'backup.imported',
+    action: 'factory.reset',
     actor: session!.user.email ?? 'admin',
     ip: getClientIp(req.headers),
     details: 'Factory reset to baseline',
