@@ -57,14 +57,18 @@ export async function GET() {
   }
 
   // ─── 3. Memory usage ───
+  // Threshold: 512MB in production (optimized build ~150-200MB typical).
+  // Dev mode (next dev) holds compiled modules in memory and routinely
+  // exceeds 512MB without any real memory pressure — use 900MB in dev.
   const mem = process.memoryUsage()
   const heapUsedMB = Math.round(mem.heapUsed / 1024 / 1024)
   const heapTotalMB = Math.round(mem.heapTotal / 1024 / 1024)
+  const memThresholdMB = process.env.NODE_ENV === 'development' ? 900 : 512
   checks.memory = {
-    status: heapUsedMB < 512 ? 'ok' : 'error',
+    status: heapUsedMB < memThresholdMB ? 'ok' : 'error',
     message: `${heapUsedMB}MB / ${heapTotalMB}MB heap`,
   }
-  if (heapUsedMB >= 512) healthy = false
+  if (heapUsedMB >= memThresholdMB) healthy = false
 
   // ─── Response ───
   const response = {
