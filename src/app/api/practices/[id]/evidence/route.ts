@@ -88,10 +88,22 @@ export async function POST(
   // JSON — URL submission
   const body = await req.json()
   const label = typeof body.label === 'string' ? body.label.trim() : ''
-  const url = typeof body.url === 'string' ? body.url.trim() : ''
+  const rawUrl = typeof body.url === 'string' ? body.url.trim() : ''
 
   if (!label) return NextResponse.json({ error: 'label is required' }, { status: 400 })
-  if (!url) return NextResponse.json({ error: 'url is required' }, { status: 400 })
+  if (!rawUrl) return NextResponse.json({ error: 'url is required' }, { status: 400 })
+  if (rawUrl.length > 2048) return NextResponse.json({ error: 'URL too long (max 2048 characters)' }, { status: 400 })
+
+  let parsedUrl: URL
+  try {
+    parsedUrl = new URL(rawUrl)
+  } catch {
+    return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+  }
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    return NextResponse.json({ error: 'URL must use http or https' }, { status: 400 })
+  }
+  const url = rawUrl
 
   const [urlItem] = await sql`
     INSERT INTO practice_evidence (practice_id, label, url, uploaded_by)
