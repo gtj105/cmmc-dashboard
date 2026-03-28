@@ -12,9 +12,22 @@ set -eu
 cd "$(dirname "$0")/.."
 
 # Bootstrap secrets if this is a first run
+SECRETS_EXISTED=true
 if [ ! -f "./secrets/postgres_password.txt" ] || [ ! -f "./secrets/nextauth_secret.txt" ]; then
+  SECRETS_EXISTED=false
   echo "Secrets not found — bootstrapping..."
   bash ./scripts/setup-secrets.sh
+fi
+
+# If secrets were just generated, the pgdata-dev volume (if it exists) was initialized
+# with a different password. Remove it so Postgres re-initializes with the new password.
+if [ "${SECRETS_EXISTED}" = "false" ]; then
+  if docker volume inspect cmmc-dev_pgdata-dev > /dev/null 2>&1; then
+    echo "[WARN] New secrets generated but pgdata-dev volume already exists (stale password)."
+    echo "       Removing stale volume to force clean DB initialization..."
+    docker volume rm cmmc-dev_pgdata-dev
+    echo "[OK]   Stale volume removed."
+  fi
 fi
 
 echo "Starting CMMC Dashboard dev runtime..."
