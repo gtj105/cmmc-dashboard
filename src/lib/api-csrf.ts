@@ -26,7 +26,13 @@ export function checkCsrf(req: NextRequest): NextResponse | null {
   const cookieToken = req.cookies.get(CSRF_COOKIE)?.value
   const headerToken = req.headers.get(CSRF_HEADER)
 
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+  const tokensMatch =
+    !!cookieToken &&
+    !!headerToken &&
+    cookieToken.length === headerToken.length &&
+    require('crypto').timingSafeEqual(Buffer.from(cookieToken), Buffer.from(headerToken))
+
+  if (!tokensMatch) {
     const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     logger.security('csrf.rejected', {
       method,
