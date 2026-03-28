@@ -1,5 +1,22 @@
 # Security And Operations Notes
 
+## Security Hardening — March 2026
+
+The following controls were added in March 2026:
+
+1. **Token revocation on every API request** — `getAuthSession()` checks both `revoked_tokens` (per-token JTI) and `user_invalidations` (per-user) on every authenticated request, not just at login.
+2. **User deletion invalidates all active tokens** — deleting a user writes a row to `user_invalidations`; any existing JWT for that user is rejected immediately on the next request.
+3. **DB-backed login rate limiter** — failed login attempts are tracked in the `login_attempts` table; 5 failures triggers a 15-minute lockout that survives app and container restarts.
+4. **Backup file size limit** — the backup restore endpoint rejects uploaded files larger than 10 MB before parsing.
+5. **Zod row-level validation on backup restore** — every row in an uploaded backup is validated against its Zod schema; malformed payloads are rejected before touching the database.
+6. **Backup restore never accepts password hashes** — `password_hash` is rejected from any restore payload; all restored users are forced to set a new password on first login.
+7. **Timing-safe CSRF token comparison** — `checkCsrf()` uses `crypto.timingSafeEqual` to prevent timing-based token oracle attacks.
+8. **CSRF `Secure` flag conditioned on HTTPS** — `csrfCookieHeaders()` sets `Secure` only when `NEXTAUTH_URL` starts with `https`, so the cookie works correctly in HTTP-only dev environments.
+9. **Health endpoint error masking** — `/api/health` returns generic status messages to callers; detailed DB errors are logged server-side only.
+10. **Evidence URL validation** — URL fields accept only `http`/`https` scheme, capped at 2048 characters; other schemes and overlong values are rejected at the API layer.
+
+---
+
 ## Intended Use
 
 This dashboard is intended for a small set of trusted internal users.
@@ -41,7 +58,7 @@ Secrets belong in runtime environment variables, not in the image.
 Important variables:
 
 - `POSTGRES_PASSWORD`
-- `NEXTAUTH_SECRET`
+- `NEXTAUTH_SECRET` — In production, `docker-entrypoint.sh` reads the Docker secret file at startup and exports `NEXTAUTH_SECRET` before the app starts — it never needs to be in `.env`. In dev, `setup-secrets.sh` writes it to `.env` and Next.js auto-loads it.
 - `NEXTAUTH_URL`
 
 Do not put real secrets into:
