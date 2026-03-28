@@ -14,24 +14,24 @@ This document is for operators standing up or maintaining the internal CMMC Dash
 
 ## First-Time Bootstrap
 
-Run this once on a fresh machine:
+Run these steps on a fresh machine:
 
 ```bash
-bash ./scripts/bootstrap.sh
+# 1. Generate secrets
+./scripts/setup-secrets.sh
+
+# 2. Start the stack — migrations run automatically on boot
+docker compose up -d --build
+
+# 3. Seed the database (first time only)
+docker compose exec app npm run seed
 ```
-
-This single command will:
-
-1. Verify Docker is running
-2. Generate secure random secrets (PostgreSQL password, NextAuth secret) in `./secrets/`
-3. Start the database and wait for it to be healthy
-4. Run the schema seed (skipped automatically if data already exists)
-5. Create a default admin user (`admin@localhost` / `changeme`)
-6. Start the full runtime stack
 
 The app will be available at **http://localhost** when done.
 
 **Change the default admin password immediately after first login.**
+
+> **Migrations run automatically.** The Next.js instrumentation hook applies any pending SQL migration files before the app starts serving requests — no manual `psql` steps are needed.
 
 ---
 
@@ -138,14 +138,11 @@ For HTTPS, see `docs/RUNBOOK.md` and `docs/SECURITY-AND-OPERATIONS.md` for the T
 
 ## Upgrading
 
-1. Pull the latest code (or replace the ZIP)
-2. Run bootstrap again — it is idempotent and safe on an existing deployment:
-
 ```bash
-bash ./scripts/bootstrap.sh
+git pull && docker compose up -d --build
 ```
 
-3. If the schema changed, the seed will apply updates. Run validate afterward:
+New migrations run automatically when the app boots. Run validate afterward to verify DB invariants:
 
 ```bash
 bash ./scripts/validate-runtime.sh
