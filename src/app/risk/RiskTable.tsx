@@ -6,7 +6,7 @@ import { RiskBadge } from '@/components/RiskBadge'
 import { FrameworkBadge } from '@/components/FrameworkBadge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { effectivePracticeStatus } from '@/lib/overlay-scoring'
+import { effectivePracticeStatus } from '@/lib/overlays/scoring'
 import {
   buildRiskDomains,
   buildRiskSummary,

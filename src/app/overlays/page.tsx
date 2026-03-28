@@ -11,7 +11,7 @@ import {
   fetchOverlayPackSummaries,
   fetchOverlayValidationsForActivePacks,
 } from '@/lib/overlays'
-import { computeResidualTotals } from '@/lib/overlay-scoring'
+import { computeResidualTotals } from '@/lib/overlays/scoring'
 import type { OverlayPackKey, Practice } from '@/lib/types'
 import { OverlayPageClient } from './OverlayPageClient'
 

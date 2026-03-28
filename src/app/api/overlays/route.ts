@@ -9,7 +9,7 @@ import {
   fetchOverlayValidationsForActivePacks,
 } from '@/lib/overlays'
 import type { Practice } from '@/lib/types'
-import { computeResidualTotals } from '@/lib/overlay-scoring'
+import { computeResidualTotals } from '@/lib/overlays/scoring'
 
 export const dynamic = 'force-dynamic'
 

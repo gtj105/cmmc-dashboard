@@ -6,7 +6,7 @@ import {
   buildOverviewDomainSummaries,
   buildOverviewMetrics,
 } from './overview-summary'
-import { effectivePracticeStatus } from '@/lib/overlay-scoring'
+import { effectivePracticeStatus } from '@/lib/overlays/scoring'
 
 export async function fetchOverviewData() {
   const [

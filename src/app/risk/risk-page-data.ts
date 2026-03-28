@@ -1,5 +1,5 @@
 import type { EffectivePractice, Framework, RiskLevel, Status } from '@/lib/types'
-import { effectivePracticeStatus } from '@/lib/overlay-scoring'
+import { effectivePracticeStatus } from '@/lib/overlays/scoring'
 
 export interface RiskPractice extends EffectivePractice {
   domain_name: string

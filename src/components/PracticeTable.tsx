@@ -9,7 +9,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { effectivePracticeStatus } from '@/lib/overlay-scoring'
+import { effectivePracticeStatus } from '@/lib/overlays/scoring'
 import { EvidenceDrawer } from '@/components/EvidenceDrawer'
 import { ASSESSMENT_OBJECTIVES } from '@/lib/assessment-objectives'
 import { CustomerActions } from '@/components/CustomerActions'

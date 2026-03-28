@@ -7,7 +7,7 @@ import {
   computeResidualBlockerCount,
   computeResidualTotals,
   effectivePracticeStatus,
-} from '@/lib/overlay-scoring'
+} from '@/lib/overlays/scoring'
 
 export interface OverviewDomainSummary {
   id: number

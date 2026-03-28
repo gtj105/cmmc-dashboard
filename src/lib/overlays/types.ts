@@ -8,13 +8,13 @@ export {
   fetchOverlayPackSummaries,
   fetchOverlayValidationsForActivePacks,
   toggleOverlayPackEnabled,
-} from '@/lib/overlay-queries'
+} from './queries'
 export type {
   OverlayMappingDetail,
   OverlayPackSummary,
   QueryClient,
-} from '@/lib/overlay-queries'
+} from './queries'
 export {
   buildEffectivePractices,
   resolveEffectiveInheritance,
-} from '@/lib/overlay-resolution'
+} from './resolution'

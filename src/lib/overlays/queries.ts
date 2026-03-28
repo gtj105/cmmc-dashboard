@@ -7,7 +7,7 @@ import type {
   OverlayValidation,
   Practice,
 } from '@/lib/types'
-import { buildEffectivePractices } from '@/lib/overlay-resolution'
+import { buildEffectivePractices } from './resolution'
 
 export type QueryClient = typeof import('@/lib/db').default
 
