@@ -41,5 +41,8 @@ certs/
 # Brainstorming session files
 .superpowers/
 
+# Cowork session data
+.claude/
+
 # Local git worktrees
 .worktrees/
