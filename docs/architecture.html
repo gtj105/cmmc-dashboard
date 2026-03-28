@@ -116,7 +116,7 @@
   <div class="stat"><div class="num">110+</div><div class="label">CMMC Practices</div></div>
   <div class="stat"><div class="num">14</div><div class="label">Security Domains</div></div>
   <div class="stat"><div class="num">4</div><div class="label">Cloud Overlays</div></div>
-  <div class="stat"><div class="num">10</div><div class="label">DB Tables</div></div>
+  <div class="stat"><div class="num">14</div><div class="label">DB Tables</div></div>
   <div class="stat"><div class="num">4</div><div class="label">Docker Services</div></div>
   <div class="stat"><div class="num">3</div><div class="label">User Roles</div></div>
   <div class="stat"><div class="num">4</div><div class="label">Admin Tabs</div></div>
@@ -283,10 +283,11 @@
           <li>/api/auth/[...nextauth]</li>
           <li>Credentials Provider + JWT strategy</li>
           <li>bcrypt (10 rounds), 12-char minimum</li>
-          <li>Rate limit: 5 attempts / 15min lockout</li>
+          <li>Rate limit: 5 attempts / 15min lockout (DB-backed, survives restarts)</li>
           <li>Timing-attack safe comparison</li>
           <li>Audit: login.success / login.failed / login.locked_out</li>
           <li>signOut event logged</li>
+          <li class="fixed">All API routes use <code>getAuthSession()</code> — checks both <code>revoked_tokens</code> (per-token JTI revocation) and <code>user_invalidations</code> (per-user invalidation) on every request</li>
         </ul>
       </div>
       <div class="box">
@@ -358,7 +359,7 @@
     <div class="layer-label"><span class="dot"></span>Data Layer — PostgreSQL 15</div>
     <div class="boxes">
       <div class="box" style="flex: 2;">
-        <div class="box-title"><span class="icon">🗃️</span> Database Schema (10 Tables)</div>
+        <div class="box-title"><span class="icon">🗃️</span> Database Schema (14 Tables)</div>
         <table class="schema-table">
           <thead><tr><th>Table</th><th>Purpose</th><th>Key Relations</th></tr></thead>
           <tbody>
@@ -372,9 +373,13 @@
             <tr><td>overlay_mappings</td><td>Practice → CSP control mapping</td><td class="rel">→ overlay_packs.id</td></tr>
             <tr><td>overlay_validations</td><td>Inheritance verification evidence</td><td class="rel">→ overlay_mappings.id</td></tr>
             <tr class="new-row"><td>security_events ✦</td><td>Security audit log (login, CSRF, user changes)</td><td></td></tr>
+            <tr class="new-row"><td>revoked_tokens ✦</td><td>Per-token JTI revocation on logout; auto-purged after expiry</td><td></td></tr>
+            <tr class="new-row"><td>login_attempts ✧</td><td>Persistent rate limiting — email, count, locked_until</td><td></td></tr>
+            <tr class="new-row"><td>user_invalidations ✧</td><td>Token invalidation on user deletion — user_id, invalidated_at</td><td class="rel">→ users.id</td></tr>
+            <tr class="new-row"><td>schema_migrations ✧</td><td>Migration tracking — filename, applied_at</td><td></td></tr>
           </tbody>
         </table>
-        <p style="font-size: 11px; color: #34d399; margin-top: 8px;">✦ Added in Phase 3</p>
+        <p style="font-size: 11px; color: #34d399; margin-top: 8px;">✦ Added in Phase 3 &nbsp;·&nbsp; ✧ Added in Phase 5 (March 2026)</p>
       </div>
       <div class="box">
         <div class="box-title"><span class="icon">📁</span> File Storage</div>
