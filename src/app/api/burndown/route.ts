@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { getAuthOptions } from '@/lib/auth'
+import { getAuthSession } from '@/lib/get-session'
 import sql from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -17,7 +16,7 @@ const RANGE_CONFIG = {
 type Range = keyof typeof RANGE_CONFIG
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(getAuthOptions())
+  const session = await getAuthSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const raw = req.nextUrl.searchParams.get('range') ?? '3m'

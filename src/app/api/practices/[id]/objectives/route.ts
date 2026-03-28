@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { getAuthOptions } from '@/lib/auth'
+import { getAuthSession } from '@/lib/get-session'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import { parseObjectivePatch, validationError } from '@/lib/validation'
@@ -8,7 +7,7 @@ import { parseObjectivePatch, validationError } from '@/lib/validation'
 export const dynamic = 'force-dynamic'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(getAuthOptions())
+  const session = await getAuthSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const rows = await sql<{ objective_letter: string; status: string }[]>`
@@ -28,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const csrfError = checkCsrf(req)
   if (csrfError) return csrfError
 
-  const session = await getServerSession(getAuthOptions())
+  const session = await getAuthSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let rawBody: unknown

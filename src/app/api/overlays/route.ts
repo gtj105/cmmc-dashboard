@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { getAuthOptions } from '@/lib/auth'
+import { getAuthSession } from '@/lib/get-session'
 import sql from '@/lib/db'
 import {
   buildEffectivePractices,
@@ -15,7 +14,7 @@ import { computeResidualTotals } from '@/lib/overlay-scoring'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const session = await getServerSession(getAuthOptions())
+  const session = await getAuthSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const [practices, packs, activePacks] = await Promise.all([

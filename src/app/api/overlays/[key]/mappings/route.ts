@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { getAuthOptions } from '@/lib/auth'
+import { getAuthSession } from '@/lib/get-session'
 import sql from '@/lib/db'
 import { fetchOverlayMappingsForPack, fetchOverlayPackByKey } from '@/lib/overlays'
 import { OVERLAY_PACK_KEYS, type OverlayPackKey } from '@/lib/types'
@@ -15,7 +14,7 @@ export async function GET(
   _req: Request,
   { params }: { params: { key: string } },
 ) {
-  const session = await getServerSession(getAuthOptions())
+  const session = await getAuthSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const key = parseOverlayPackKey(params.key)

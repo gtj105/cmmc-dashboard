@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { getAuthOptions, requireRole } from '@/lib/auth'
+import { getAuthSession } from '@/lib/get-session'
+import { requireRole } from '@/lib/auth'
 import sql from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic'
  *   actor  — filter by actor email
  */
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(getAuthOptions())
+  const session = await getAuthSession()
   const authError = requireRole(session, 'admin')
   if (authError) return authError
 

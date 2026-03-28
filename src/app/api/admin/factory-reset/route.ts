@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { getAuthOptions, requireRole } from '@/lib/auth'
+import { getAuthSession } from '@/lib/get-session'
+import { requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import { audit, getClientIp } from '@/lib/audit'
 import { validatePayload, restoreFromPayload } from '@/lib/restore'
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   const csrfError = checkCsrf(req)
   if (csrfError) return csrfError
 
-  const session = await getServerSession(getAuthOptions())
+  const session = await getAuthSession()
   const authError = requireRole(session, 'admin')
   if (authError) return authError
 
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
  * Returns metadata about the baseline (when it was generated, whether it exists).
  */
 export async function GET() {
-  const session = await getServerSession(getAuthOptions())
+  const session = await getAuthSession()
   const authError = requireRole(session, 'admin')
   if (authError) return authError
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 // GET removed — POAM page is now server-rendered; initial data fetched directly via sql
-import { getServerSession } from 'next-auth'
-import { getAuthOptions, requireRole } from '@/lib/auth'
+import { getAuthSession } from '@/lib/get-session'
+import { requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import { parsePoamCreate, validationError } from '@/lib/validation'
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   const csrfError = checkCsrf(req)
   if (csrfError) return csrfError
 
-  const session = await getServerSession(getAuthOptions())
+  const session = await getAuthSession()
   const authError = requireRole(session, 'editor')
   if (authError) return authError
 

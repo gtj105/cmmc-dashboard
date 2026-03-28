@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { getServerSession } from 'next-auth'
-import { getAuthOptions, requireRole } from '@/lib/auth'
+import { getAuthSession } from '@/lib/get-session'
+import { requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import { fetchOverlayPackByKey, toggleOverlayPackEnabled } from '@/lib/overlays'
@@ -21,7 +21,7 @@ export async function POST(
   const csrfError = checkCsrf(req)
   if (csrfError) return csrfError
 
-  const session = await getServerSession(getAuthOptions())
+  const session = await getAuthSession()
   const authError = requireRole(session, 'editor')
   if (authError) return authError
 

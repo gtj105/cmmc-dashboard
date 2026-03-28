@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { getAuthOptions } from '@/lib/auth'
+import { getAuthSession } from '@/lib/get-session'
 import { mimeTypeForPath, resolveEvidencePath } from '@/lib/evidence'
 import { existsSync } from 'fs'
 import { readFile } from 'fs/promises'
@@ -11,7 +10,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { path: string[] } },
 ) {
-  const session = await getServerSession(getAuthOptions())
+  const session = await getAuthSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const relPath = params.path.join('/')
