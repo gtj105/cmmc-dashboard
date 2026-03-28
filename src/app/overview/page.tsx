@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import AppShell from '@/components/layout/AppShell'
+import { getOrgName } from '@/lib/settings'
 import OverviewCharts from './OverviewCharts'
 import AnimatedProgress from '@/components/AnimatedProgress'
 import ComplianceGauge from '@/components/ComplianceGauge'
@@ -21,7 +22,7 @@ export default async function OverviewPage() {
   const session = await getServerSession(getAuthOptions())
   if (!session) redirect('/login')
 
-  const orgName = process.env.ORG_NAME ?? 'My Organization'
+  const orgName = await getOrgName()
   const {
     burndown,
     criticalPractices,

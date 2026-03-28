@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import sql from '@/lib/db'
 import AppShell from '@/components/layout/AppShell'
+import { getOrgName } from '@/lib/settings'
 import { Progress } from '@/components/ui/progress'
 import { PracticeTable } from '@/components/PracticeTable'
 import type { Practice } from '@/lib/types'
@@ -15,7 +16,7 @@ export default async function ITARPage() {
   if (!session) redirect('/login')
   const canEdit = session.user.role === 'editor' || session.user.role === 'admin'
 
-  const orgName = process.env.ORG_NAME ?? 'My Organization'
+  const orgName = await getOrgName()
 
   const practices = await sql<Practice[]>`
     SELECT * FROM practices WHERE framework = 'ITAR' ORDER BY practice_id

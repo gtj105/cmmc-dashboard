@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import sql from '@/lib/db'
 import AppShell from '@/components/layout/AppShell'
+import { getOrgName } from '@/lib/settings'
 import { fetchEffectivePractices } from '@/lib/overlays'
 import type { PoamItem } from '@/lib/types'
 import { scopePoamItems } from './poam-page-data'
@@ -14,7 +15,7 @@ export default async function PoamPage() {
   const session = await getServerSession(getAuthOptions())
   if (!session) redirect('/login')
 
-  const orgName = process.env.ORG_NAME ?? 'My Organization'
+  const orgName = await getOrgName()
   const canEdit = session.user.role === 'editor' || session.user.role === 'admin'
   const canDelete = session.user.role === 'admin'
 

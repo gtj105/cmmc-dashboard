@@ -31,6 +31,7 @@ export type AuditAction =
   | 'poam.deleted'
   | 'overlay.toggled'
   | 'csrf.rejected'
+  | 'settings.updated'
 
 interface AuditData {
   action: AuditAction

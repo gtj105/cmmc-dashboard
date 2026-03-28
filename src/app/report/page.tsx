@@ -5,6 +5,7 @@ import { fetchReportData } from './report-data'
 import { formatAssessmentDate } from '@/app/overview/overview-data'
 import { formatScheduledCompletion } from '@/app/poam/poam-page-data'
 import { PrintButton } from './PrintButton'
+import { getOrgName } from '@/lib/settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +32,7 @@ export default async function ReportPage() {
   if (!session) redirect('/login')
 
   const data = await fetchReportData()
+  const orgName = await getOrgName()
 
   const sprsColor =
     data.sprsScore >= 88 ? '#16a34a' : data.sprsScore >= 50 ? '#d97706' : '#dc2626'
@@ -63,7 +65,7 @@ export default async function ReportPage() {
         {/* Section 1: Header */}
         <div className="mb-10 border-b border-border pb-6">
           <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            {process.env.ORG_NAME ?? 'My Organization'}
+            {orgName}
           </p>
           <h1 className="mt-1 text-2xl font-semibold text-foreground">
             CMMC Level 2 Assessment Report

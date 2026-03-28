@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import sql from '@/lib/db'
 import AppShell from '@/components/layout/AppShell'
+import { getOrgName } from '@/lib/settings'
 import AnimatedNumber from '@/components/AnimatedNumber'
 import AnimatedProgress from '@/components/AnimatedProgress'
 import { PracticeTable } from '@/components/PracticeTable'
@@ -25,7 +26,7 @@ export default async function DomainPage({ params }: Props) {
   const domainId = parseInt(params.id)
   if (isNaN(domainId)) notFound()
 
-  const orgName = process.env.ORG_NAME ?? 'My Organization'
+  const orgName = await getOrgName()
 
   const [domain] = await sql`
     SELECT * FROM domains WHERE id = ${domainId} AND framework = 'CMMC'

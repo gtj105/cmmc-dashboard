@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import sql from '@/lib/db'
 import AppShell from '@/components/layout/AppShell'
+import { getOrgName } from '@/lib/settings'
 import type { ActivityEntry } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -63,7 +64,7 @@ export default async function ActivityPage() {
   const session = await getServerSession(getAuthOptions())
   if (!session) redirect('/login')
 
-  const orgName = process.env.ORG_NAME ?? 'My Organization'
+  const orgName = await getOrgName()
 
   const entries = await sql<ActivityEntryWithDomain[]>`
     SELECT h.*, d.abbreviation AS domain_abbr

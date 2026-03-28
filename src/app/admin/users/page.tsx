@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import sql from '@/lib/db'
 import AppShell from '@/components/layout/AppShell'
+import { getOrgName } from '@/lib/settings'
 import AdminTabs from '@/components/AdminTabs'
 import { type UserRow } from '@/components/UserTable'
 
@@ -14,7 +15,7 @@ export default async function AdminPage() {
     redirect('/overview')
   }
 
-  const orgName = process.env.ORG_NAME ?? 'My Organization'
+  const orgName = await getOrgName()
   const currentUserId = parseInt((session.user as { id?: string }).id ?? '0', 10)
 
   const users = await sql<UserRow[]>`

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import sql from '@/lib/db'
 import AppShell from '@/components/layout/AppShell'
+import { getOrgName } from '@/lib/settings'
 import { buildEffectivePractices, fetchActiveOverlayPacks, fetchMappingsForActivePacks, fetchOverlayValidationsForActivePacks } from '@/lib/overlays'
 import type { EffectivePractice, Practice } from '@/lib/types'
 import { RiskTable } from './RiskTable'
@@ -14,7 +15,7 @@ export default async function RiskPage() {
   const session = await getServerSession(getAuthOptions())
   if (!session) redirect('/login')
 
-  const orgName = process.env.ORG_NAME ?? 'My Organization'
+  const orgName = await getOrgName()
 
   const practices = await sql<Practice[]>`
     SELECT p.*, d.name AS domain_name, d.abbreviation
