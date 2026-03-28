@@ -15,33 +15,39 @@ const DUMMY_HASH = '$2b$10$dummy.hash.for.timing.protection.placeholder.xxxxx'
 const JWT_MAX_AGE_SECONDS = 24 * 60 * 60
 
 // ---------------------------------------------------------------------------
-// In-memory login rate limiter (per email address)
+// DB-backed login rate limiter (per email address)
 // ---------------------------------------------------------------------------
 const MAX_ATTEMPTS = 5
 const LOCKOUT_MS = 15 * 60 * 1000 // 15 minutes
 
-const loginAttempts = new Map<string, { count: number; lockedUntil: number }>()
-
-function isLockedOut(email: string): boolean {
-  const rec = loginAttempts.get(email)
+async function isLockedOut(email: string): Promise<boolean> {
+  const [rec] = await sql<{ count: number; locked_until: Date | null }[]>`
+    SELECT count, locked_until FROM login_attempts WHERE email = ${email}
+  `
   if (!rec) return false
-  if (rec.lockedUntil && Date.now() < rec.lockedUntil) return true
-  // Expired lockout — reset
-  if (rec.lockedUntil && Date.now() >= rec.lockedUntil) loginAttempts.delete(email)
+  if (rec.locked_until && new Date(rec.locked_until) > new Date()) return true
+  if (rec.locked_until && new Date(rec.locked_until) <= new Date()) {
+    await sql`DELETE FROM login_attempts WHERE email = ${email}`
+  }
   return false
 }
 
-function recordFailure(email: string): void {
-  const rec = loginAttempts.get(email) ?? { count: 0, lockedUntil: 0 }
-  const count = rec.count + 1
-  loginAttempts.set(email, {
-    count,
-    lockedUntil: count >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_MS : 0,
-  })
+async function recordFailure(email: string): Promise<void> {
+  await sql`
+    INSERT INTO login_attempts (email, count, locked_until)
+    VALUES (${email}, 1, NULL)
+    ON CONFLICT (email) DO UPDATE
+      SET count = login_attempts.count + 1,
+          locked_until = CASE
+            WHEN login_attempts.count + 1 >= ${MAX_ATTEMPTS}
+            THEN NOW() + INTERVAL '15 minutes'
+            ELSE NULL
+          END
+  `
 }
 
-function clearFailures(email: string): void {
-  loginAttempts.delete(email)
+async function clearFailures(email: string): Promise<void> {
+  await sql`DELETE FROM login_attempts WHERE email = ${email}`
 }
 // ---------------------------------------------------------------------------
 
@@ -108,7 +114,7 @@ export function getAuthOptions(): NextAuthOptions {
 
           const email = credentials.email.toLowerCase().trim()
 
-          if (isLockedOut(email)) {
+          if (await isLockedOut(email)) {
             audit({ action: 'login.locked_out', actor: email, details: `Account locked for ${LOCKOUT_MS / 60000} minutes` })
             throw new Error('TooManyAttempts')
           }
@@ -118,22 +124,21 @@ export function getAuthOptions(): NextAuthOptions {
           `
           if (!user) {
             await bcrypt.compare(credentials.password, DUMMY_HASH)
-            recordFailure(email)
+            await recordFailure(email)
             audit({ action: 'login.failed', actor: email, details: 'Unknown email' })
             return null
           }
           const valid = await bcrypt.compare(credentials.password, user.password_hash)
           if (!valid) {
-            recordFailure(email)
-            const rec = loginAttempts.get(email)
+            await recordFailure(email)
             audit({
               action: 'login.failed',
               actor: email,
-              details: `Invalid password (attempt ${rec?.count ?? 1}/${MAX_ATTEMPTS})`,
+              details: 'Invalid password',
             })
             return null
           }
-          clearFailures(email)
+          await clearFailures(email)
           audit({ action: 'login.success', actor: email, details: `Role: ${user.role}` })
           return {
             id: String(user.id),
