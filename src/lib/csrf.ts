@@ -70,10 +70,12 @@ export async function validateCsrf(req: NextRequest): Promise<NextResponse | nul
  */
 export function csrfCookieHeaders(): Record<string, string> {
   const token = generateToken()
+  const isSecure = process.env.NEXTAUTH_URL?.startsWith('https') ?? false
+  const securePart = isSecure ? '; Secure' : ''
   // HttpOnly=false so JavaScript can read it and send as header
   // SameSite=Strict prevents the cookie from being sent in cross-site requests
   return {
-    'Set-Cookie': `${CSRF_COOKIE}=${token}; Path=/; SameSite=Strict; HttpOnly=false; Secure`,
+    'Set-Cookie': `${CSRF_COOKIE}=${token}; Path=/; SameSite=Strict; HttpOnly=false${securePart}`,
   }
 }
 
