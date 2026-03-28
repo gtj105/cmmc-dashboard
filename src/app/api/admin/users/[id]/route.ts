@@ -5,6 +5,7 @@ import { checkCsrf } from '@/lib/api-csrf'
 import sql from '@/lib/db'
 import { audit, getClientIp } from '@/lib/audit'
 import { parseUserRolePatch, validationError } from '@/lib/validation'
+import { invalidateUser } from '@/lib/token-revocation'
 
 export async function PATCH(
   req: NextRequest,
@@ -88,6 +89,8 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+    // Invalidate all tokens for this user before deleting the row
+    await invalidateUser(id)
     const [deleted] = await sql<{ id: number }[]>`
       DELETE FROM users WHERE id = ${id} RETURNING id
     `
