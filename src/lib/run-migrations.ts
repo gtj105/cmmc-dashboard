@@ -9,7 +9,12 @@ import path from 'node:path'
 import postgres from 'postgres'
 import sql from '@/lib/db'
 
-const MIGRATIONS_DIR = path.resolve(process.cwd(), 'migrations')
+// In production the Dockerfile copies scripts/migrations → migrations/.
+// In dev the full source is volume-mounted, so fall back to scripts/migrations/.
+import { existsSync } from 'node:fs'
+const _prod = path.resolve(process.cwd(), 'migrations')
+const _dev  = path.resolve(process.cwd(), 'scripts/migrations')
+const MIGRATIONS_DIR = existsSync(_prod) ? _prod : _dev
 
 async function ensureMigrationsTable(): Promise<void> {
   await sql`
