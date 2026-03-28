@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import { existsSync } from 'fs'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,10 +33,11 @@ export async function GET() {
       latency_ms: Date.now() - dbStart,
     }
   } catch (err) {
+    logger.error('health.db_check_failed', { error: err instanceof Error ? err.message : String(err) })
     checks.database = {
       status: 'error',
       latency_ms: Date.now() - dbStart,
-      message: err instanceof Error ? err.message : 'Connection failed',
+      message: 'Database connection failed',
     }
     healthy = false
   }
