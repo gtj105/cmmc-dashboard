@@ -25,6 +25,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
   }
 
+  const MAX_BACKUP_BYTES = 10 * 1024 * 1024 // 10 MB
+  if (file.size > MAX_BACKUP_BYTES) {
+    return NextResponse.json({ error: 'Backup file too large (max 10 MB)' }, { status: 400 })
+  }
+
   let parsed: unknown
   try {
     const text = await file.text()
