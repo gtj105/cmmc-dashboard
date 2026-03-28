@@ -32,33 +32,27 @@ cd cmmc-dashboard/dashboard
 npm install
 ```
 
-### 3. Set up secrets
-
-```bash
-bash ./scripts/setup-secrets.sh
-```
-
-This creates `secrets/postgres_password.txt` and `secrets/nextauth_secret.txt` with random values. These files are `.gitignore`d and never committed. If the secrets directory already exists (e.g. from a prior bootstrap), skip this step.
-
-### 4. Start the dev instance
+### 3. Start the dev instance
 
 ```bash
 bash ./scripts/start-dev.sh
 ```
 
-Wait for the `app` container to print `ready started server on 0.0.0.0:3000`. First run takes 2–3 minutes while Docker builds the image. Subsequent starts are under 10 seconds.
+`start-dev.sh` will automatically generate secrets if they don't exist yet (no separate setup step needed). Wait for the `app` container to print `ready started server on 0.0.0.0:3000`. First run takes 2–3 minutes while Docker builds the image. Subsequent starts are under 10 seconds.
+
+> **Migrations run automatically on startup.** The Next.js instrumentation hook runs all pending SQL migration files in `scripts/migrations/` before the app starts serving requests. No manual `psql` steps are needed.
 
 Dev app is at: **http://localhost:3001**
 
-### 5. Seed the database
+### 4. Seed the database (first time only)
 
-The dev database starts empty. Run the seed once:
+The dev database starts empty. Once the stack is healthy, run the seed once:
 
 ```bash
 docker compose -p cmmc-dev -f docker-compose.yml -f docker-compose.dev.yml exec app npm run seed
 ```
 
-This creates the schema, inserts all 110 CMMC practices + 20 ITAR controls + 4 overlay packs, and creates a default admin user (`admin@localhost` / `admin`).
+This inserts all 110 CMMC practices + 20 ITAR controls + 4 overlay packs, and creates a default admin user (`admin@localhost` / `admin`).
 
 ### 6. Start editing
 
