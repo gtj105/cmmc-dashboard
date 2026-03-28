@@ -1,8 +1,5 @@
 -- SPRS weight migration: NIST SP 800-171 DoD Assessment Methodology v1.2.1 (June 2020)
 -- 44×5pt + 14×3pt + 52×1pt = 314 total → baseline score = 110 - 314 = -204
---
--- Run against your live database:
---   psql $DATABASE_URL -f scripts/migrate-sprs-weights.sql
 
 -- Step 1: add column if it doesn't exist
 ALTER TABLE practices ADD COLUMN IF NOT EXISTS sprs_weight SMALLINT NOT NULL DEFAULT 1;
@@ -44,14 +41,3 @@ UPDATE practices SET sprs_weight = 3 WHERE practice_id IN (
   'SC.L2-3.13.8',
   'SI.L2-3.14.5', 'SI.L2-3.14.7'
 );
-
--- Verify: should return 314
-SELECT
-  SUM(sprs_weight) AS total_weight,
-  COUNT(*) FILTER (WHERE sprs_weight = 5) AS count_5pt,
-  COUNT(*) FILTER (WHERE sprs_weight = 3) AS count_3pt,
-  COUNT(*) FILTER (WHERE sprs_weight = 1) AS count_1pt,
-  110 - SUM(sprs_weight) AS baseline_sprs_score
-FROM practices
-WHERE framework = 'CMMC';
--- Expected: total_weight=314, count_5pt=44, count_3pt=14, count_1pt=52, baseline_sprs_score=-204
