@@ -82,7 +82,7 @@
 
 <h1>Durability &amp; Security Improvement Plan</h1>
 <p class="tagline">CMMC Compliance Dashboard — Phased roadmap for production readiness</p>
-<p class="updated">Updated March 2026 — Phases 1–4 complete + Tier 1 hardening (password rate limiting, HTTPS stack, CSP parity)</p>
+<p class="updated">Updated March 2026 — Phases 1–5 complete (security hardening, auto-migrations, simplified deployment)</p>
 
 <div class="priority-order">
   <span class="priority-chip p1">#1 Durability — Don't lose data</span>
@@ -380,6 +380,168 @@
 <hr>
 
 <!-- ============================================================ -->
+<!-- PHASE 5 — COMPLETE -->
+<!-- ============================================================ -->
+<div class="phase" style="--phase-color: #f59e0b;">
+  <div class="phase-header">
+    <div class="phase-num" style="background: #f59e0b;">5</div>
+    <div>
+      <div class="phase-title">Security Hardening &amp; Deployment Simplification — March 2026 <span class="phase-status status-done">✓ Complete</span></div>
+      <div class="phase-subtitle">Token revocation, DB-backed rate limiting, backup hardening, auto-migrations, entrypoint secret handling.</div>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Token Revocation Enforced on Every API Request</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li><code>getAuthSession()</code> helper checks both <code>revoked_tokens</code> (per-token JTI) and <code>user_invalidations</code> (per-user) on every authenticated API request</li>
+        <li>Replaces scattered <code>getServerSession()</code> calls across all API routes</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">User Token Invalidation on Deletion</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li>Deleting a user writes a row to <code>user_invalidations</code> table</li>
+        <li>Any existing JWT for that user is rejected on the next request — no waiting for token expiry</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">DB-Backed Login Rate Limiter (Survives Restarts)</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li>Failed login attempts tracked in <code>login_attempts</code> table (email, count, locked_until)</li>
+        <li>5 failures triggers 15-minute lockout; state survives app and container restarts</li>
+        <li>Cleared automatically on successful login</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Zod Row-Level Validation on Backup Restore</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li>Every row in an uploaded backup file is validated against its Zod schema before touching the DB</li>
+        <li>10 MB file size limit on backup uploads enforced at the API boundary</li>
+        <li>Malformed or oversized payloads are rejected with structured error messages</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Backup Password Hash Injection Blocked</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li>Backup restore explicitly rejects any <code>password_hash</code> field in the import payload</li>
+        <li>All restored users are forced to set a new password on first login (<code>must_change_password = true</code>)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Timing-Safe CSRF Token Comparison</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li><code>checkCsrf()</code> uses <code>crypto.timingSafeEqual</code> to compare cookie and header tokens</li>
+        <li><code>csrfCookieHeaders()</code> sets <code>Secure</code> flag only when <code>NEXTAUTH_URL</code> starts with <code>https</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Health Endpoint Error Masking</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li><code>/api/health</code> returns generic error messages to callers</li>
+        <li>Detailed DB error messages logged server-side only — never exposed in the response body</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Evidence URL Validation (Scheme + Length)</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li>Evidence URL fields validated: <code>http</code>/<code>https</code> scheme only, maximum 2048 characters</li>
+        <li>Other schemes (e.g. <code>javascript:</code>, <code>file:</code>) and overlong values rejected at the API layer</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Auto-Migrations on Startup</div>
+      <div class="item-tags"><span class="tag tag-availability">Availability</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li>Next.js instrumentation hook (<code>src/instrumentation.ts</code>) runs <code>run-migrations.ts</code> before the app serves requests</li>
+        <li><code>schema_migrations</code> table tracks applied files; prevents double-application</li>
+        <li>No manual <code>psql</code> steps needed on first deploy or upgrade</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Simplified Deployment (One-Command Dev and Prod)</div>
+      <div class="item-tags"><span class="tag tag-availability">Availability</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li><code>start-dev.sh</code> auto-bootstraps secrets if not present — no separate setup step</li>
+        <li>Production redeploy: <code>git pull &amp;&amp; docker compose up -d --build</code> — migrations run automatically</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="item done">
+    <div class="item-top">
+      <div class="item-name">Entrypoint-Based NEXTAUTH_SECRET for Edge Middleware</div>
+      <div class="item-tags"><span class="tag tag-security">Security</span><span class="tag tag-done">Done</span></div>
+    </div>
+    <div class="item-built"><strong>What was built:</strong>
+      <ul>
+        <li><code>docker-entrypoint.sh</code> reads the Docker secret file at startup and exports <code>NEXTAUTH_SECRET</code> before the app process starts</li>
+        <li>The secret is never written to <code>.env</code> in production — Edge middleware receives it via the process environment</li>
+        <li>In dev, <code>setup-secrets.sh</code> writes it to <code>.env</code> and Next.js auto-loads it</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+<hr>
+
+<!-- ============================================================ -->
 <!-- SUMMARY TABLE -->
 <!-- ============================================================ -->
 <h2 style="font-size: 18px; font-weight: 700; color: #f1f5f9; margin-bottom: 16px;">Implementation Summary</h2>
@@ -411,6 +573,17 @@
     <tr><td>Backup hash stripping</td><td class="check">✓ Done</td><td>Export selects email/name/role only — password_hash never serialized</td></tr>
     <tr><td>First-login password enforcement</td><td class="check">✓ Done</td><td>must_change_password flag, /set-password page, middleware redirect, cleared on success</td></tr>
     <tr><td>Encryption at rest</td><td class="cross">Future</td><td>Host-level (FileVault/LUKS) or managed Postgres with encryption enabled</td></tr>
+    <tr><td>Token revocation on every request</td><td class="check">✓ Done</td><td>getAuthSession() checks revoked_tokens + user_invalidations on every API call</td></tr>
+    <tr><td>User token invalidation on deletion</td><td class="check">✓ Done</td><td>user_invalidations table; tokens rejected immediately after user deletion</td></tr>
+    <tr><td>DB-backed login rate limiter</td><td class="check">✓ Done</td><td>login_attempts table; survives restarts; 5 attempts → 15min lockout</td></tr>
+    <tr><td>Zod row-level validation on restore</td><td class="check">✓ Done</td><td>Every row validated before DB insert; 10MB file size cap</td></tr>
+    <tr><td>Backup password hash injection blocked</td><td class="check">✓ Done</td><td>password_hash rejected from restore payload; all users force password-reset</td></tr>
+    <tr><td>Timing-safe CSRF comparison</td><td class="check">✓ Done</td><td>crypto.timingSafeEqual in checkCsrf(); Secure flag conditioned on NEXTAUTH_URL scheme</td></tr>
+    <tr><td>Health endpoint error masking</td><td class="check">✓ Done</td><td>Generic errors returned to callers; DB details logged server-side only</td></tr>
+    <tr><td>Evidence URL validation</td><td class="check">✓ Done</td><td>http/https only; 2048-char max; enforced at API layer</td></tr>
+    <tr><td>Auto-migrations on startup</td><td class="check">✓ Done</td><td>instrumentation.ts + run-migrations.ts; schema_migrations tracking table</td></tr>
+    <tr><td>Simplified deployment</td><td class="check">✓ Done</td><td>start-dev.sh auto-bootstraps secrets; prod redeploy is one git pull + compose up</td></tr>
+    <tr><td>Entrypoint NEXTAUTH_SECRET</td><td class="check">✓ Done</td><td>docker-entrypoint.sh exports secret from Docker secret file before app starts</td></tr>
   </tbody>
 </table>
 
