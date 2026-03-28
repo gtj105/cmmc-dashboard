@@ -162,12 +162,35 @@ docker compose build app
 bash ./scripts/start-runtime.sh
 ```
 
+> **Migrations run automatically on startup.** The Next.js instrumentation hook applies all pending SQL migration files in `scripts/migrations/` before the app begins serving requests. No manual `psql` steps are needed after an upgrade.
+
 After updating schema or seeding data:
 
 ```bash
 bash ./scripts/seed-runtime.sh
 bash ./scripts/validate-runtime.sh
 ```
+
+---
+
+## 6a. Database Tables Reference
+
+| Table | Purpose |
+|---|---|
+| `domains` | 14 CMMC + 1 ITAR domain definitions |
+| `practices` | 110+ controls with status, risk, SPRS weight |
+| `users` | Auth (email, bcrypt hash, role, must_change_password) |
+| `practice_evidence` | File and URL attachments |
+| `practice_history` | Field-level change audit trail |
+| `poam_items` | Plan of Action & Milestones |
+| `overlay_packs` | Cloud overlay definitions (4 packs) |
+| `overlay_mappings` | Practice → CSP control mapping |
+| `overlay_validations` | Inheritance verification evidence |
+| `security_events` | Security audit log (login, CSRF, user changes) |
+| `revoked_tokens` | Per-token JTI revocation on logout; auto-purged after expiry |
+| `login_attempts` | Tracks failed login attempts per email; auto-cleared on successful login; survives restarts |
+| `user_invalidations` | Records when a user's tokens were invalidated (on deletion); checked on every API request |
+| `schema_migrations` | Tracks which SQL migration files have been applied; prevents double-application |
 
 ---
 
