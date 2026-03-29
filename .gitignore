@@ -46,3 +46,4 @@ certs/
 
 # Local git worktrees
 .worktrees/
+.worktrees/
