@@ -6,12 +6,9 @@
 # It clones the repo into ~/cmmc-dashboard-prod, generates secrets,
 # configures the environment, and starts all services.
 #
-# Usage:
-#   curl -fsSL https://raw.githubusercontent.com/gtj105/cmmc-dashboard/master/scripts/deploy-prod.sh | sh
-#
-#   — or —
-#
-#   bash ./scripts/deploy-prod.sh
+# Usage (fresh machine):
+#   git clone https://github.com/gtj105/cmmc-dashboard.git ~/cmmc-dashboard-prod
+#   bash ~/cmmc-dashboard-prod/scripts/deploy-prod.sh
 # ─────────────────────────────────────────────────────────────────
 set -eu
 

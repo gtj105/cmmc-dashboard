@@ -17,15 +17,16 @@ Make sure Docker is **running** (Docker Desktop icon in taskbar, or `docker info
 
 ---
 
-## First-Time Production Deploy (one command)
+## First-Time Production Deploy
 
-On a fresh machine, run:
+On a fresh machine, run these two commands:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gtj105/cmmc-dashboard/master/scripts/deploy-prod.sh | sh
+git clone https://github.com/gtj105/cmmc-dashboard.git ~/cmmc-dashboard-prod
+bash ~/cmmc-dashboard-prod/scripts/deploy-prod.sh
 ```
 
-That single command will:
+The deploy script will:
 
 1. **Check** Docker is installed and running
 2. **Clone** the repo into `~/cmmc-dashboard-prod`
