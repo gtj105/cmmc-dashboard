@@ -187,21 +187,21 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
           <p className="command-kicker">Remediation command surface</p>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">Plan of Action & Milestones</h1>
           <p className="max-w-[44rem] text-sm leading-6 text-muted-foreground">
-            Customer-owned remediation work stays in scope here so the customer-owned backlog, due dates, and milestone movement stay visible without leaving the execution surface.
+            Track remediation findings from identification through closure. Due dates, milestone progress, and status stay visible in one place.
           </p>
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="command-panel px-4 py-3">
               <div className="text-2xl font-semibold tabular-nums text-red-300">{summary.openCount}</div>
-              <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Customer-owned backlog</div>
+              <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Open</div>
             </div>
             <div className="command-panel px-4 py-3">
               <div className="text-2xl font-semibold tabular-nums text-amber-300">{summary.inProgressCount}</div>
-              <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Active work</div>
+              <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">In progress</div>
             </div>
             <div className="command-panel px-4 py-3">
               <div className="text-2xl font-semibold tabular-nums text-green-300">{summary.closedCount}</div>
-              <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Closed items</div>
+              <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Closed</div>
             </div>
           </div>
         </div>
@@ -290,7 +290,7 @@ export function PoamTable({ initialItems, canEdit, canDelete }: PoamTableProps) 
       {filteredItems.length === 0 ? (
         <div className="py-12 text-center text-sm text-muted-foreground">
           {items.length === 0
-            ? 'No POA&M items yet. Create the first finding to start tracking customer-owned remediation work.'
+            ? 'No POA&M items yet. Create the first finding to start tracking remediation work.'
             : 'No items match the current filter.'}
         </div>
       ) : (
