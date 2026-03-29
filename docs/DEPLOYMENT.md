@@ -1,179 +1,235 @@
 # Deployment Guide
 
-This document is for operators standing up or maintaining the internal CMMC Dashboard runtime. No host-side Node.js is required — all operations run through Docker.
+This guide is for operators standing up or maintaining the CMMC Dashboard in production. No host-side Node.js is required — everything runs through Docker.
 
 ---
 
 ## Prerequisites
 
-- Docker Desktop (Mac/Windows) or Docker Engine + Compose plugin (Linux)
-- Git (or download the repository as a ZIP)
-- A terminal
+Install these before you begin:
+
+| Requirement | Version | How to check |
+|---|---|---|
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Mac/Windows) or Docker Engine + Compose plugin (Linux) | Docker 24+ | `docker --version` |
+| Git | Any | `git --version` |
+
+Make sure Docker is **running** (Docker Desktop icon in taskbar, or `docker info` returns no error).
 
 ---
 
-## First-Time Bootstrap
+## First-Time Production Deploy (one command)
 
-Run these steps on a fresh machine:
+On a fresh machine, run:
 
 ```bash
-# 1. Generate secrets
-./scripts/setup-secrets.sh
-
-# 2. Start the stack — migrations run automatically on boot
-docker compose up -d --build
-
-# 3. Seed the database (first time only)
-docker compose exec app npm run seed
+curl -fsSL https://raw.githubusercontent.com/gtj105/cmmc-dashboard/master/scripts/deploy-prod.sh | sh
 ```
 
-The app will be available at **http://localhost** when done.
+That single command will:
 
-**Change the default admin password immediately after first login.**
+1. **Check** Docker is installed and running
+2. **Clone** the repo into `~/cmmc-dashboard-prod`
+3. **Generate** secure random secrets (`postgres_password.txt`, `nextauth_secret.txt`)
+4. **Prompt** for your server's URL (e.g. `http://10.0.1.50` or `http://cmmc.internal`) — press Enter to use `http://localhost`
+5. **Build** the Docker images and start all services
+6. **Wait** for the app to be healthy
+7. **Seed** the database with baseline CMMC data
 
-> **Migrations run automatically.** The Next.js instrumentation hook applies any pending SQL migration files before the app starts serving requests — no manual `psql` steps are needed.
+When complete, the app is running at the URL you entered.
+
+**Login:** `admin@localhost` / `admin`
+**First thing:** Change the admin password (Settings → Change Password) and set your org name (Settings → Organization).
 
 ---
 
-## Daily Operations
+## If you already have the repo cloned
+
+Run the deploy script directly from the repo:
+
+```bash
+bash ~/cmmc-dashboard-prod/scripts/deploy-prod.sh
+```
+
+---
+
+## Day-to-Day Operations
+
+All commands run from `~/cmmc-dashboard-prod/`.
 
 ### Start the stack
 
 ```bash
-bash ./scripts/start-runtime.sh
+bash scripts/start-runtime.sh
 ```
 
 ### Stop the stack (data is preserved)
 
 ```bash
-bash ./scripts/stop-runtime.sh
+bash scripts/stop-runtime.sh
+```
+
+### View live logs
+
+```bash
+docker compose logs -f app
 ```
 
 ### Add an admin user
 
 ```bash
-bash ./scripts/create-admin.sh --email jane@example.com --name "Jane Doe" --password "secure-password"
+bash scripts/create-admin.sh --email jane@example.com --name "Jane Doe" --password "secure-password"
 ```
 
-### Run DB validation (after migrations or imports)
+### Check stack health
 
 ```bash
-bash ./scripts/validate-runtime.sh
+docker compose ps
+```
+
+All services should show `healthy` or `running`.
+
+---
+
+## Updating to the Latest Version
+
+From `~/cmmc-dashboard-prod/`:
+
+```bash
+git pull && docker compose up -d --build
+```
+
+Migrations run automatically when the app boots. No manual database steps needed.
+
+Verify afterward:
+
+```bash
+bash scripts/validate-runtime.sh
 ```
 
 ---
 
 ## Backup and Restore
 
-Automated backups run nightly at 2 AM by the `backup` sidecar container. Backup files are stored in the `backup_data` Docker volume.
+Automated backups run nightly at 2 AM via the `backup` sidecar container and are stored in the `backup_data` Docker volume.
 
-### Manual export (human-readable JSON)
-
-```bash
-bash ./scripts/export-runtime.sh
-```
-
-The export file lands in `./exports/` on the host.
-
-### Restore from a JSON export
+### Manual export
 
 ```bash
-bash ./scripts/import-runtime.sh --file exports/export-20250101-120000.json
+bash scripts/export-runtime.sh
 ```
 
-Add `--wipe` to truncate all existing data before importing:
+The export file is saved to `./exports/` on the host.
+
+### Restore from export
 
 ```bash
-bash ./scripts/import-runtime.sh --file exports/export-20250101-120000.json --wipe
+bash scripts/import-runtime.sh --file exports/export-20260101-120000.json
 ```
 
-> The schema must already exist before importing. Run `bash ./scripts/bootstrap.sh` first if you are restoring to a fresh instance.
+Add `--wipe` to clear all existing data first:
+
+```bash
+bash scripts/import-runtime.sh --file exports/export-20260101-120000.json --wipe
+```
 
 ---
 
 ## Smoke Test
 
-After deployment or after a restore, run the smoke test to verify the stack is healthy:
+After any deploy or restore, verify the stack is healthy:
 
 ```bash
-bash ./scripts/smoke-test.sh
+bash scripts/smoke-test.sh
 ```
 
-Expected output: all checks passing.
+All checks should pass.
 
 ---
 
 ## Configuration
 
-Runtime configuration lives in two places:
+Secrets and environment config live in `~/cmmc-dashboard-prod/`:
 
-| Location | What goes here |
+| File | What it contains |
 |---|---|
-| `./secrets/postgres_password.txt` | PostgreSQL password (generated by bootstrap, never committed) |
-| `./secrets/nextauth_secret.txt` | NextAuth signing secret (generated by bootstrap, never committed) |
-| `.env` | Non-secret config: `POSTGRES_PASSWORD`, `NEXTAUTH_URL`, `ORG_NAME` |
+| `secrets/postgres_password.txt` | PostgreSQL password — generated automatically, never commit |
+| `secrets/nextauth_secret.txt` | NextAuth JWT signing key — generated automatically, never commit |
+| `.env` | Non-secret config: `POSTGRES_PASSWORD`, `NEXTAUTH_URL` |
 
-> **How NEXTAUTH_SECRET reaches the app:** `docker-entrypoint.sh` reads `nextauth_secret.txt` at container startup and exports it as an environment variable. This is required because Next.js Edge middleware (which validates JWT sessions) cannot read files — it needs the value as an env var. You never need to set `NEXTAUTH_SECRET` manually.
+> **How NEXTAUTH_SECRET reaches the app:** `docker-entrypoint.sh` reads `nextauth_secret.txt` at container startup and exports it as an environment variable. This is required because Next.js Edge middleware cannot read files at runtime — it needs the value as an env var. You never need to set `NEXTAUTH_SECRET` manually.
 
-**Never edit secrets by hand.** If you need to rotate them, delete the relevant file in `./secrets/` and re-run `bash ./scripts/setup-secrets.sh`.
-
-### Setting your organization name
-
-In `.env`, set:
-
-```
-ORG_NAME=Acme Corp
-```
-
-Then restart the stack:
+**Never edit secret files by hand.** To rotate secrets, delete the relevant file and re-run:
 
 ```bash
-bash ./scripts/stop-runtime.sh
-bash ./scripts/start-runtime.sh
+bash scripts/setup-secrets.sh
+```
+
+### Organization name
+
+Set your organization name from within the app: **Settings → Organization** (admin only). No restart needed.
+
+### NEXTAUTH_URL
+
+Must match the URL users access the app at. Edit `.env`:
+
+```
+NEXTAUTH_URL=http://10.0.1.50
+```
+
+Then restart:
+
+```bash
+bash scripts/stop-runtime.sh && bash scripts/start-runtime.sh
 ```
 
 ### HTTPS / TLS
 
-For HTTPS, see `docs/RUNBOOK.md` and `docs/SECURITY-AND-OPERATIONS.md` for the TLS setup path.
-
----
-
-## Upgrading
-
-```bash
-git pull && docker compose up -d --build
-```
-
-New migrations run automatically when the app boots. Run validate afterward to verify DB invariants:
-
-```bash
-bash ./scripts/validate-runtime.sh
-```
+For HTTPS, see `docs/SECURITY-AND-OPERATIONS.md` and `docs/RUNBOOK.md`.
 
 ---
 
 ## Troubleshooting
 
-**App won't start / can't reach database**
-
-Check that the database is healthy:
+**App won't start / database unreachable**
 
 ```bash
-docker compose ps
-docker compose logs db
+docker compose ps          # check all services are running
+docker compose logs db     # check database logs
+docker compose logs app    # check app logs
 ```
 
 **Secrets missing**
 
-Re-run secrets setup (existing secrets are never overwritten):
-
 ```bash
-bash ./scripts/setup-secrets.sh
+bash scripts/setup-secrets.sh   # safe to re-run; never overwrites existing secrets
 ```
 
-**Full reset (destroys all data)**
+**Full reset — destroys all data**
 
 ```bash
 docker compose down -v
-bash ./scripts/bootstrap.sh
+bash scripts/deploy-prod.sh
+```
+
+---
+
+## Directory Layout After Deploy
+
+```
+~/cmmc-dashboard-prod/
+├── secrets/                  # generated secrets (never commit)
+│   ├── postgres_password.txt
+│   └── nextauth_secret.txt
+├── .env                      # non-secret config
+├── exports/                  # manual backup exports land here
+├── scripts/
+│   ├── deploy-prod.sh        # first-time setup (this script)
+│   ├── start-runtime.sh      # start stack
+│   ├── stop-runtime.sh       # stop stack
+│   ├── create-admin.sh       # add admin user
+│   ├── export-runtime.sh     # manual backup
+│   ├── import-runtime.sh     # restore from backup
+│   ├── validate-runtime.sh   # DB validation
+│   └── smoke-test.sh         # health check
+└── docker-compose.yml
 ```
