@@ -20,7 +20,7 @@ const TOKEN_LENGTH = 32
 // Paths that bypass auth checks entirely
 // /api/auth must be here — these are NextAuth's own session/callback/provider
 // endpoints. Blocking them prevents NextAuth from ever creating a session.
-const PUBLIC_PATHS = ['/login', '/set-password', '/api/auth']
+const PUBLIC_PATHS = ['/login', '/set-password', '/api/auth', '/api/health']
 
 // API prefixes that must_change_password users can still reach
 const PASSWORD_CHANGE_ALLOWED_API = ['/api/user/password', '/api/auth']
