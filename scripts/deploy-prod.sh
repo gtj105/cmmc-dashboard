@@ -98,7 +98,7 @@ echo "[OK]   Stack started — migrations run automatically on boot"
 # Wait for app to be healthy
 echo "Waiting for app to be healthy..."
 ATTEMPTS=0
-until docker compose exec -T app wget -q -O- http://localhost:3000/api/health > /dev/null 2>&1; do
+until docker compose exec -T app node -e "require('http').get('http://127.0.0.1:3000/api/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))" 2>/dev/null; do
   ATTEMPTS=$((ATTEMPTS + 1))
   if [ "${ATTEMPTS}" -ge 30 ]; then
     echo "[WARN] App did not become healthy after 60s. Check: docker compose logs app"
@@ -111,9 +111,21 @@ echo ""
 echo "[OK]   App is healthy"
 
 # ─── Step 6: Seed database ────────────────────────────────────────
+# The prod image is a standalone Next.js build — it doesn't include
+# node_modules or scripts/. Run seed via a temporary node container
+# that mounts this directory and connects to the prod DB network.
 echo ""
 echo "Step 6/6 — Seeding database with baseline data..."
-docker compose exec app npm run seed
+PG_PASS=$(cat secrets/postgres_password.txt)
+DB_URL="postgresql://cmmc_user:${PG_PASS}@db:5432/cmmc_db"
+COMPOSE_PROJECT=$(docker compose config --format json 2>/dev/null | grep '"Name"' | head -1 | sed 's/.*"Name": "\(.*\)".*/\1/' || basename "$(pwd)")
+docker run --rm \
+  --network "${COMPOSE_PROJECT}_default" \
+  -e DATABASE_URL="${DB_URL}" \
+  -v "$(pwd):/app" \
+  -w /app \
+  node:20-alpine \
+  sh -c "npm ci --prefer-offline --silent 2>&1 | tail -1 && node_modules/.bin/tsx scripts/seed.ts"
 echo "[OK]   Database seeded"
 
 # ─── Done ─────────────────────────────────────────────────────────
