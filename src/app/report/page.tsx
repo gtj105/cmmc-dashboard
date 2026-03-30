@@ -188,7 +188,7 @@ export default async function ReportPage() {
                 {data.openPoamItems.map((item, i) => (
                   <tr key={item.id} className="print-avoid-break border-b border-border/40">
                     <td className="py-2 pr-2 text-muted-foreground">{i + 1}</td>
-                    <td className="py-2 pr-4 text-foreground">{item.finding}</td>
+                    <td className="py-2 pr-4 text-foreground">{item.gap_statement}</td>
                     <td className="py-2 pr-4 font-mono text-sky-300">{item.practice_id ?? '—'}</td>
                     <td className="py-2 pr-4 text-muted-foreground">{item.responsible_individual ?? '—'}</td>
                     <td className="py-2 pr-4 text-muted-foreground">

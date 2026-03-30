@@ -28,7 +28,7 @@ export function EvidenceDrawer({
   onClose,
   onCountChange,
 }: EvidenceDrawerProps) {
-  const [drawerTab, setDrawerTab] = useState<'evidence' | 'objectives'>('evidence')
+  const [drawerTab, setDrawerTab] = useState<'evidence' | 'objectives' | 'poam'>('evidence')
   const [items, setItems] = useState<EvidenceItem[]>([])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -43,8 +43,15 @@ export function EvidenceDrawer({
   const [objLoading, setObjLoading] = useState(false)
   const [savingObj, setSavingObj] = useState<string | null>(null)
 
+  // POA&M quick-create
+  const [poamGapStatement, setPoamGapStatement] = useState('')
+  const [poamRemediationPlan, setPoamRemediationPlan] = useState('')
+  const [poamSaving, setPoamSaving] = useState(false)
+  const [poamSuccess, setPoamSuccess] = useState(false)
+  const [showPoamForm, setShowPoamForm] = useState(false)
+
   useEffect(() => {
-    if (!practiceId) { setItems([]); setObjStatuses({}); return }
+    if (!practiceId) { setItems([]); setObjStatuses({}); setPoamGapStatement(''); setPoamRemediationPlan(''); setShowPoamForm(false); setPoamSuccess(false); return }
     let active = true
     setLoading(true)
     setError(null)
@@ -144,6 +151,31 @@ export function EvidenceDrawer({
     }
   }
 
+  async function handlePoamCreate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!practiceId || !poamGapStatement.trim()) return
+    setPoamSaving(true)
+    const res = await apiFetch('/api/poam', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gap_statement: poamGapStatement,
+        remediation_plan: poamRemediationPlan || null,
+        practice_id: practiceId,
+      }),
+    })
+    if (res.ok) {
+      setPoamGapStatement('')
+      setPoamRemediationPlan('')
+      setShowPoamForm(false)
+      setPoamSuccess(true)
+      setTimeout(() => setPoamSuccess(false), 4000)
+    } else {
+      setError('Failed to create POA&M item.')
+    }
+    setPoamSaving(false)
+  }
+
   if (!practiceId) return null
 
   const objectives = practiceId ? ASSESSMENT_OBJECTIVES[practiceId] : null
@@ -190,6 +222,18 @@ export function EvidenceDrawer({
             }`}
           >
             Assessment ({objectives.length})
+          </button>
+        )}
+        {canEdit && (
+          <button
+            onClick={() => setDrawerTab('poam')}
+            className={`flex-1 py-2.5 text-[10px] uppercase tracking-[0.14em] transition-colors ${
+              drawerTab === 'poam'
+                ? 'border-b-2 border-sky-400 text-sky-300'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            POA&amp;M
           </button>
         )}
       </div>
@@ -375,6 +419,74 @@ export function EvidenceDrawer({
                 </div>
               )
             })
+          )}
+        </div>
+      )}
+      {/* POA&M quick-create tab */}
+      {drawerTab === 'poam' && canEdit && (
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Add POA&amp;M Item</p>
+          <p className="text-xs text-muted-foreground">
+            Creates a new POA&amp;M item linked to this practice.
+          </p>
+          {poamSuccess && (
+            <div className="border border-green-900/60 bg-green-950/20 px-3 py-2 text-xs text-green-300">
+              POA&amp;M item created.{' '}
+              <a href="/poam" className="underline hover:text-green-200">View on POA&amp;M page →</a>
+            </div>
+          )}
+          {!showPoamForm ? (
+            <button
+              type="button"
+              onClick={() => setShowPoamForm(true)}
+              className="text-xs text-sky-400 underline hover:text-sky-300"
+            >
+              + Create POA&amp;M item for this practice
+            </button>
+          ) : (
+            <form onSubmit={handlePoamCreate} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70">
+                  Gap Statement <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  required
+                  value={poamGapStatement}
+                  onChange={(e) => setPoamGapStatement(e.target.value)}
+                  rows={5}
+                  maxLength={5000}
+                  placeholder="What is missing or weak?"
+                  className="w-full resize-y border border-border/70 bg-background px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70">Remediation Plan</label>
+                <textarea
+                  value={poamRemediationPlan}
+                  onChange={(e) => setPoamRemediationPlan(e.target.value)}
+                  rows={3}
+                  maxLength={5000}
+                  placeholder="Actions planned…"
+                  className="w-full resize-y border border-border/70 bg-background px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowPoamForm(false); setPoamGapStatement(''); setPoamRemediationPlan('') }}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={poamSaving}
+                  className="text-xs text-sky-400 hover:text-sky-300 disabled:opacity-50"
+                >
+                  {poamSaving ? 'Saving…' : 'Save POA&M item'}
+                </button>
+              </div>
+            </form>
           )}
         </div>
       )}
