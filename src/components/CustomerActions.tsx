@@ -13,7 +13,7 @@ export function CustomerActions({ text }: { text: string }) {
       {displayParagraphs.map((para, i) => {
         const lines = para.split('\n').map(l => l.trim()).filter(Boolean)
         const firstLine = lines[0]
-        const isSection = lines.length > 1 && /^[A-Z].+:$/.test(firstLine)
+        const isSection = lines.length > 1 && lines.slice(1).every(l => /^[•\-\*]/.test(l.trim()))
 
         if (isSection) {
           const bullets = lines.slice(1)
@@ -37,7 +37,7 @@ export function CustomerActions({ text }: { text: string }) {
       {isLong && (
         <button
           onClick={() => setExpanded(e => !e)}
-          className="text-[11px] text-sky-400/80 hover:text-sky-300 transition-colors"
+          className="text-[11px] text-foreground/40 hover:text-foreground/70 transition-colors"
         >
           {expanded ? 'Show less' : 'Show more…'}
         </button>
