@@ -28,7 +28,7 @@ function NavItem({ href, children, active }: { href: string; children: React.Rea
       className={cn(
         'flex items-center gap-2 rounded-sm px-3 py-2 text-sm transition-colors',
         active
-          ? 'border-l-2 border-l-sky-500 bg-accent/40 pl-[10px] text-foreground'
+          ? 'border-l-2 border-l-foreground/60 bg-accent/40 pl-[10px] text-foreground'
           : 'border-l-2 border-l-transparent pl-[10px] text-muted-foreground hover:bg-accent/30 hover:text-foreground'
       )}
     >
@@ -53,7 +53,7 @@ export default function Sidebar({ orgName, role }: { orgName: string; role?: str
         </NavItem>
 
         <div className="px-3 py-2 mt-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-500/50">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-400/50">
             CMMC Domains
           </span>
         </div>
@@ -64,13 +64,13 @@ export default function Sidebar({ orgName, role }: { orgName: string; role?: str
             href={`/domain/${domain.id}`}
             active={pathname === `/domain/${domain.id}`}
           >
-            <span className="w-7 text-xs font-semibold text-sky-500/60">{domain.abbr}</span>
+            <span className="w-7 text-xs font-semibold text-blue-400/50">{domain.abbr}</span>
             <span className="truncate">{domain.name}</span>
           </NavItem>
         ))}
 
         <div className="px-3 py-2 mt-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-500/60">
             Compliance
           </span>
         </div>
@@ -102,7 +102,7 @@ export default function Sidebar({ orgName, role }: { orgName: string; role?: str
         </NavItem>
 
         <div className="px-3 py-2 mt-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-400/50">
             Account
           </span>
         </div>
@@ -113,7 +113,7 @@ export default function Sidebar({ orgName, role }: { orgName: string; role?: str
         {role === 'admin' && (
           <>
             <div className="px-3 py-2 mt-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-400/50">
                 Admin
               </span>
             </div>
