@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-// GET removed — POAM page is now server-rendered; initial data fetched directly via sql
 import { getAuthSession } from '@/lib/get-session'
 import { requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
@@ -7,6 +6,25 @@ import sql from '@/lib/db'
 import { parsePoamCreate, validationError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
+
+export async function GET(req: NextRequest) {
+  const session = await getAuthSession()
+  const authError = requireRole(session, 'viewer')
+  if (authError) return authError
+
+  const includeArchived = req.nextUrl.searchParams.get('include_archived') === 'true'
+  const isAdmin = session?.user.role === 'admin'
+
+  if (includeArchived && !isAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const items = includeArchived
+    ? await sql`SELECT * FROM poam_items ORDER BY deleted_at DESC NULLS LAST, created_at DESC`
+    : await sql`SELECT * FROM poam_items WHERE deleted_at IS NULL ORDER BY created_at DESC`
+
+  return NextResponse.json(items)
+}
 
 export async function POST(req: NextRequest) {
   const csrfError = checkCsrf(req)
@@ -25,13 +43,31 @@ export async function POST(req: NextRequest) {
 
   const parsed = parsePoamCreate(rawBody)
   if (!parsed.success) return validationError(parsed.error)
-  const { finding, practice_id, responsible_individual, resources_required, scheduled_completion, milestone_progress, status } = parsed.data
+  const {
+    gap_statement,
+    root_cause,
+    remediation_plan,
+    closure_evidence,
+    practice_id,
+    responsible_individual,
+    resources_required,
+    scheduled_completion,
+    milestone_progress,
+    status,
+  } = parsed.data
 
   try {
     const [created] = await sql`
-      INSERT INTO poam_items (finding, practice_id, responsible_individual, resources_required, scheduled_completion, milestone_progress, status)
+      INSERT INTO poam_items (
+        gap_statement, root_cause, remediation_plan, closure_evidence,
+        practice_id, responsible_individual, resources_required,
+        scheduled_completion, milestone_progress, status
+      )
       VALUES (
-        ${finding.trim()},
+        ${gap_statement.trim()},
+        ${root_cause ?? null},
+        ${remediation_plan ?? null},
+        ${closure_evidence ?? null},
         ${practice_id ?? null},
         ${responsible_individual ?? null},
         ${resources_required ?? null},
