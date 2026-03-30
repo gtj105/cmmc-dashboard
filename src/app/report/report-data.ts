@@ -47,10 +47,11 @@ export async function fetchReportData(): Promise<ReportData> {
       ORDER BY abbreviation
     `,
     sql<PoamItem[]>`
-      SELECT id, finding, practice_id, responsible_individual, resources_required,
-             scheduled_completion, milestone_progress, status, created_at, updated_at
+      SELECT id, gap_statement, root_cause, remediation_plan, closure_evidence,
+             practice_id, responsible_individual, resources_required,
+             scheduled_completion, milestone_progress, status, deleted_at, created_at, updated_at
       FROM poam_items
-      WHERE status != 'Closed'
+      WHERE status != 'Closed' AND deleted_at IS NULL
       ORDER BY
         CASE status WHEN 'Open' THEN 1 WHEN 'In Progress' THEN 2 ELSE 3 END,
         scheduled_completion ASC NULLS LAST
