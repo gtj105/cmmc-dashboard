@@ -59,19 +59,24 @@ export function parseObjectivePatch(body: unknown) {
 
 const POAM_STATUSES = ['Open', 'In Progress', 'Closed'] as const
 
+const poamText = z.string().max(5_000).nullable().optional()
+
 const PoamBaseFields = {
-  finding:                 z.string().min(1, 'finding is required').max(5_000).optional(),
-  practice_id:             z.string().max(20).nullable().optional(),
-  responsible_individual:  z.string().max(200).nullable().optional(),
-  resources_required:      z.string().max(2_000).nullable().optional(),
-  scheduled_completion:    isoDate,
-  milestone_progress:      z.number().int().min(0).max(100).optional(),
-  status:                  z.enum(POAM_STATUSES).optional(),
+  gap_statement:          z.string().min(1, 'gap_statement is required').max(5_000).optional(),
+  root_cause:             poamText,
+  remediation_plan:       poamText,
+  closure_evidence:       poamText,
+  practice_id:            z.string().max(20).nullable().optional(),
+  responsible_individual: z.string().max(200).nullable().optional(),
+  resources_required:     z.string().max(2_000).nullable().optional(),
+  scheduled_completion:   isoDate,
+  milestone_progress:     z.number().int().min(0).max(100).optional(),
+  status:                 z.enum(POAM_STATUSES).optional(),
 }
 
 export const PoamCreateSchema = z.object({
   ...PoamBaseFields,
-  finding: z.string().min(1, 'finding is required').max(5_000),
+  gap_statement: z.string().min(1, 'gap_statement is required').max(5_000),
 })
 
 export const PoamPatchSchema = z.object(PoamBaseFields)

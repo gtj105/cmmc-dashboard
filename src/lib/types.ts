@@ -106,14 +106,28 @@ export type PoamStatus = 'Open' | 'In Progress' | 'Closed'
 export interface PoamItem {
   id: number
   practice_id: string | null
-  finding: string
+  gap_statement: string
+  root_cause: string | null
+  remediation_plan: string | null
+  closure_evidence: string | null
   responsible_individual: string | null
   resources_required: string | null
   scheduled_completion: string | null
   milestone_progress: number
   status: PoamStatus
+  deleted_at: string | null
   created_at: string
   updated_at: string
+}
+
+export interface PoamHistoryEntry {
+  id: number
+  poam_id: number
+  field_changed: string
+  old_value: string | null
+  new_value: string | null
+  changed_by: string
+  changed_at: string
 }
 
 export interface EvidenceItem {
