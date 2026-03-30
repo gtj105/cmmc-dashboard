@@ -22,9 +22,9 @@ type CreateForm = { name: string; email: string; password: string; role: string 
 const emptyForm = (): CreateForm => ({ name: '', email: '', password: '', role: 'viewer' })
 
 function roleBadgeClass(role: string): string {
-  if (role === 'admin') return 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-  if (role === 'editor') return 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
-  return 'bg-muted/40 text-muted-foreground border border-border'
+  if (role === 'admin') return 'text-amber-400 border border-amber-500/30'
+  if (role === 'editor') return 'text-foreground/70 border border-border'
+  return 'text-foreground/40 border border-border/50'
 }
 
 function formatDate(iso: string): string {
@@ -38,6 +38,7 @@ function formatDate(iso: string): string {
 export default function UserTable({ users, currentUserId }: UserTableProps) {
   const [rows, setRows] = useState<UserRow[]>(users)
   const [pending, setPending] = useState<number | null>(null)
+  const [pendingRoles, setPendingRoles] = useState<Record<number, string>>({})
   const [error, setError] = useState<{ id: number; msg: string } | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [createForm, setCreateForm] = useState<CreateForm>(emptyForm())
@@ -93,7 +94,6 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
     const previous = rows.find((r) => r.id === userId)?.role
     if (!previous || previous === newRole) return
 
-    // Optimistic update
     setError(null)
     setRows((prev) => prev.map((r) => (r.id === userId ? { ...r, role: newRole } : r)))
     setPending(userId)
@@ -114,12 +114,10 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
           res.status === 401 ? 'Session expired. Please refresh the page.' :
           (data as { error?: string }).error ?? 'Failed to update role. Try again.'
 
-        // Revert
         setRows((prev) => prev.map((r) => (r.id === userId ? { ...r, role: previous } : r)))
         setError({ id: userId, msg })
       }
     } catch {
-      // Network error — revert
       setRows((prev) => prev.map((r) => (r.id === userId ? { ...r, role: previous } : r)))
       setError({ id: userId, msg: 'Failed to update role. Try again.' })
     } finally {
@@ -127,13 +125,33 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
     }
   }
 
-  const inputCls = 'w-full border border-border/70 bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary'
+  function handleRoleSelectChange(userId: number, newRole: string) {
+    const current = rows.find((r) => r.id === userId)?.role
+    if (newRole === current) {
+      setPendingRoles((prev) => { const { [userId]: _, ...rest } = prev; return rest })
+    } else {
+      setPendingRoles((prev) => ({ ...prev, [userId]: newRole }))
+    }
+  }
+
+  async function handleRoleSave(userId: number) {
+    const newRole = pendingRoles[userId]
+    if (!newRole) return
+    setPendingRoles((prev) => { const { [userId]: _, ...rest } = prev; return rest })
+    await handleRoleChange(userId, newRole)
+  }
+
+  function handleRoleCancel(userId: number) {
+    setPendingRoles((prev) => { const { [userId]: _, ...rest } = prev; return rest })
+  }
+
+  const inputCls = 'w-full border border-border/70 bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary'
 
   return (
-    <div className="space-y-4">
-      {/* Create user form */}
+    <div className="space-y-5">
+      {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{rows.length} {rows.length === 1 ? 'user' : 'users'}</span>
+        <span className="text-xs text-foreground/40">{rows.length} {rows.length === 1 ? 'user' : 'users'}</span>
         <button
           type="button"
           onClick={() => { setShowCreate(v => !v); setCreateError(null) }}
@@ -143,135 +161,167 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
         </button>
       </div>
 
+      {/* Create user form */}
       {showCreate && (
-        <form onSubmit={handleCreate} className="border border-border bg-card/30 p-4 space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">New user</p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <input
-              required
-              type="text"
-              placeholder="Full name"
-              maxLength={100}
-              value={createForm.name}
-              onChange={(e) => setCreateForm(f => ({ ...f, name: e.target.value }))}
-              className={inputCls}
-            />
-            <input
-              required
-              type="email"
-              placeholder="Email address"
-              maxLength={254}
-              value={createForm.email}
-              onChange={(e) => setCreateForm(f => ({ ...f, email: e.target.value }))}
-              className={inputCls}
-            />
-            <input
-              required
-              type="password"
-              placeholder="Password (min 12 characters)"
-              maxLength={128}
-              value={createForm.password}
-              onChange={(e) => setCreateForm(f => ({ ...f, password: e.target.value }))}
-              className={inputCls}
-            />
-            <select
-              value={createForm.role}
-              onChange={(e) => setCreateForm(f => ({ ...f, role: e.target.value }))}
-              className={inputCls}
-            >
-              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+        <form onSubmit={handleCreate} className="space-y-4 border-t border-border pt-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-sm text-foreground/70">Full name</label>
+              <input
+                required
+                type="text"
+                maxLength={100}
+                value={createForm.name}
+                onChange={(e) => setCreateForm(f => ({ ...f, name: e.target.value }))}
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm text-foreground/70">Email address</label>
+              <input
+                required
+                type="email"
+                maxLength={254}
+                value={createForm.email}
+                onChange={(e) => setCreateForm(f => ({ ...f, email: e.target.value }))}
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm text-foreground/70">Password</label>
+              <input
+                required
+                type="password"
+                maxLength={128}
+                value={createForm.password}
+                onChange={(e) => setCreateForm(f => ({ ...f, password: e.target.value }))}
+                className={inputCls}
+              />
+              <p className="text-xs text-foreground/40">Minimum 12 characters.</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm text-foreground/70">Role</label>
+              <select
+                value={createForm.role}
+                onChange={(e) => setCreateForm(f => ({ ...f, role: e.target.value }))}
+                className={inputCls}
+              >
+                {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
           </div>
           {createError && (
-            <p className="text-xs text-destructive">{createError}</p>
+            <p className="border-l-2 border-destructive pl-3 text-sm text-destructive">{createError}</p>
           )}
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={creating}
-              className="border border-primary/60 bg-primary/10 px-4 py-1.5 text-xs text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
-            >
-              {creating ? 'Creating…' : 'Create user'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={creating}
+            className="border border-primary/60 bg-primary/10 px-4 py-2 text-sm text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+          >
+            {creating ? 'Creating…' : 'Create user'}
+          </button>
         </form>
       )}
 
-    <div className="border border-border">
+      {/* Users table */}
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-border bg-card/60">
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <tr className="border-b border-border">
+            <th className="py-3 pr-4 text-left text-xs font-semibold uppercase tracking-[0.12em] text-foreground/40">
               Name
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <th className="py-3 pr-4 text-left text-xs font-semibold uppercase tracking-[0.12em] text-foreground/40">
               Email
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <th className="py-3 pr-4 text-left text-xs font-semibold uppercase tracking-[0.12em] text-foreground/40">
               Role
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <th className="py-3 pr-4 text-left text-xs font-semibold uppercase tracking-[0.12em] text-foreground/40">
               Member Since
             </th>
-            <th className="w-24 px-4 py-3" />
+            <th className="w-24 py-3" />
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((user) => {
             const isSelf = user.id === currentUserId
             const isPending = pending === user.id
+            const hasPendingRole = !!pendingRoles[user.id]
             const rowError = error?.id === user.id ? error.msg : null
 
             return (
               <React.Fragment key={user.id}>
                 <tr
-                  className="bg-card/20 transition-colors hover:bg-card/40"
+                  className="transition-colors hover:bg-card/30"
                   onClick={() => setError(null)}
                 >
-                  <td className="px-4 py-3 font-medium text-foreground">{user.name}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{user.email}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[11px] font-semibold ${roleBadgeClass(user.role)}`}>
+                  <td className="py-3 pr-4 font-medium text-foreground">{user.name}</td>
+                  <td className="py-3 pr-4 font-mono text-xs text-foreground/50">{user.email}</td>
+                  <td className="py-3 pr-4">
+                    {isSelf ? (
+                      <span className={`inline-flex items-center px-2 py-0.5 text-[11px] font-medium ${roleBadgeClass(user.role)}`}>
                         {user.role}
                       </span>
-                      <select
-                        value={user.role}
-                        disabled={isSelf || isPending}
-                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                        className="rounded-sm border border-border bg-background px-2 py-1 text-xs text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                        aria-label={`Change role for ${user.name}`}
-                      >
-                        {ROLES.map((r) => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
-                    </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={pendingRoles[user.id] ?? user.role}
+                          disabled={isPending}
+                          onChange={(e) => handleRoleSelectChange(user.id, e.target.value)}
+                          className="border border-border bg-background px-2 py-1 text-xs text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label={`Change role for ${user.name}`}
+                        >
+                          {ROLES.map((r) => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                        {hasPendingRole && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleRoleSave(user.id) }}
+                              className="text-xs text-foreground/80 underline underline-offset-2 hover:text-foreground"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleRoleCancel(user.id) }}
+                              className="text-xs text-foreground/40 hover:text-foreground/70"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatDate(user.created_at)}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="py-3 pr-4 text-foreground/50">{formatDate(user.created_at)}</td>
+                  <td className="py-3 text-right">
                     {!isSelf && (
                       pendingDelete === user.id ? (
                         <span className="inline-flex items-center gap-2">
                           <button
-                            onClick={() => handleDelete(user.id)}
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(user.id) }}
                             disabled={deleting === user.id}
                             className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
                           >
                             {deleting === user.id ? 'Deleting…' : 'Confirm'}
                           </button>
                           <button
-                            onClick={() => setPendingDelete(null)}
-                            className="text-xs text-muted-foreground hover:text-foreground"
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setPendingDelete(null) }}
+                            className="text-xs text-foreground/40 hover:text-foreground/70"
                           >
                             Cancel
                           </button>
                         </span>
                       ) : (
                         <button
-                          onClick={() => { setError(null); setPendingDelete(user.id) }}
-                          className="text-xs text-muted-foreground transition-colors hover:text-red-400"
-                          title="Delete user"
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setError(null); setPendingDelete(user.id) }}
+                          className="text-xs text-foreground/40 transition-colors hover:text-red-400"
                         >
                           Delete
                         </button>
@@ -280,8 +330,8 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
                   </td>
                 </tr>
                 {rowError && (
-                  <tr className="bg-destructive/5">
-                    <td colSpan={4} className="px-4 py-2 text-xs text-destructive">
+                  <tr>
+                    <td colSpan={5} className="border-l-2 border-destructive py-2 pl-3 text-xs text-destructive">
                       {rowError}
                     </td>
                   </tr>
@@ -291,7 +341,6 @@ export default function UserTable({ users, currentUserId }: UserTableProps) {
           })}
         </tbody>
       </table>
-    </div>
     </div>
   )
 }

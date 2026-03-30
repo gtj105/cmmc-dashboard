@@ -108,99 +108,139 @@ export default function SettingsPage() {
 
   return (
     <AppShell orgName={orgName}>
-      <div className="space-y-6">
-        <div className="border-b border-border pb-4">
+      <div className="max-w-md space-y-10">
+
+        {/* Page header */}
+        <div className="border-b border-border pb-5">
           <h1 className="text-lg font-semibold tracking-tight text-foreground">Settings</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Signed in as <span className="text-foreground">{session?.user?.email}</span>
+          <p className="mt-1 text-sm text-foreground/50">
+            Signed in as <span className="text-foreground/80">{session?.user?.email}</span>
           </p>
         </div>
 
+        {/* Organization — admin only */}
         {isAdmin && (
-          <div className="max-w-md space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Organization
-            </h2>
-            <form onSubmit={handleOrgSubmit} className="border border-border bg-card/30 p-4 space-y-3">
+          <section className="space-y-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/60">
+                  Organization
+                </h2>
+                <span className="text-[10px] font-medium uppercase tracking-wide text-foreground/30 border border-border/50 px-1.5 py-px">
+                  Admin
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-foreground/40">
+                Appears in report headers and the navigation bar.
+              </p>
+            </div>
+
+            <form onSubmit={handleOrgSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">Organization name</label>
+                <label className="text-sm text-foreground/70">Organization name</label>
                 <input
                   type="text"
                   required
                   maxLength={100}
                   value={orgNameInput}
-                  onChange={(e) => setOrgNameInput(e.target.value)}
+                  onChange={(e) => { setOrgNameInput(e.target.value); setOrgSuccess(false) }}
                   className={inputCls}
                 />
               </div>
-              {orgError && <p className="text-xs text-destructive">{orgError}</p>}
-              {orgSuccess && <p className="text-xs text-green-400">Organization name updated.</p>}
-              <div className="flex justify-end pt-1">
-                <Button type="submit" size="sm" className="h-8 text-xs" disabled={orgSaving}>
-                  {orgSaving ? 'Saving…' : 'Update name'}
-                </Button>
-              </div>
+
+              {orgError && (
+                <p className="border-l-2 border-destructive pl-3 text-sm text-destructive">
+                  {orgError}
+                </p>
+              )}
+
+              {orgSuccess && (
+                <p className="border-l-2 border-green-500 pl-3 text-sm text-foreground/80">
+                  Organization name updated to <span className="font-medium text-foreground">{orgName}</span>.
+                </p>
+              )}
+
+              <Button type="submit" size="sm" className="h-9 text-sm" disabled={orgSaving}>
+                {orgSaving ? 'Saving…' : 'Update name'}
+              </Button>
             </form>
-          </div>
+          </section>
         )}
 
-        <div className="max-w-md space-y-4">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Change Password
-          </h2>
+        {/* Change password */}
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/60">
+              Change Password
+            </h2>
+          </div>
 
-          <form onSubmit={handleSubmit} className="border border-border bg-card/30 p-4 space-y-3">
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">Current password</label>
-              <input
-                type="password"
-                required
-                maxLength={128}
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-                className={inputCls}
-              />
+          {success ? (
+            <div className="border-l-2 border-green-500 py-1 pl-3">
+              <p className="text-sm text-foreground/80">Password updated.</p>
+              <button
+                type="button"
+                onClick={() => setSuccess(false)}
+                className="mt-1 text-xs text-foreground/40 hover:text-foreground/70 underline underline-offset-2"
+              >
+                Change again
+              </button>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">New password <span className="text-muted-foreground/60">(min 12 characters)</span></label>
-              <input
-                type="password"
-                required
-                maxLength={128}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                autoComplete="new-password"
-                className={inputCls}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">Confirm new password</label>
-              <input
-                type="password"
-                required
-                maxLength={128}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-                className={inputCls}
-              />
-            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm text-foreground/70">Current password</label>
+                <input
+                  type="password"
+                  required
+                  maxLength={128}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  autoComplete="current-password"
+                  className={inputCls}
+                />
+              </div>
 
-            {error && (
-              <p className="text-xs text-destructive">{error}</p>
-            )}
-            {success && (
-              <p className="text-xs text-green-400">Password updated successfully.</p>
-            )}
+              <div className="space-y-1.5">
+                <label className="text-sm text-foreground/70">New password</label>
+                <input
+                  type="password"
+                  required
+                  maxLength={128}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  autoComplete="new-password"
+                  className={inputCls}
+                />
+                <p className="text-xs text-foreground/40">Minimum 12 characters.</p>
+              </div>
 
-            <div className="flex justify-end pt-1">
-              <Button type="submit" size="sm" className="h-8 text-xs" disabled={saving}>
+              <div className="space-y-1.5">
+                <label className="text-sm text-foreground/70">Confirm new password</label>
+                <input
+                  type="password"
+                  required
+                  maxLength={128}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  className={inputCls}
+                />
+              </div>
+
+              {error && (
+                <p className="border-l-2 border-destructive pl-3 text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+
+              <Button type="submit" size="sm" className="h-9 text-sm" disabled={saving}>
                 {saving ? 'Saving…' : 'Update password'}
               </Button>
-            </div>
-          </form>
-        </div>
+            </form>
+          )}
+        </section>
+
       </div>
     </AppShell>
   )

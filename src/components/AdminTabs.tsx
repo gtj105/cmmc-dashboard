@@ -22,7 +22,6 @@ interface AdminTabsProps {
 }
 
 export default function AdminTabs({ users, currentUserId }: AdminTabsProps) {
-  // Check URL hash for initial tab (e.g. /admin#backup)
   const initialTab = (): TabId => {
     if (typeof window === 'undefined') return 'users'
     const hash = window.location.hash.replace('#', '')
@@ -39,7 +38,6 @@ export default function AdminTabs({ users, currentUserId }: AdminTabsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Tab bar */}
       <div className="flex gap-1 border-b border-border">
         {TABS.map((tab) => (
           <button
@@ -48,7 +46,7 @@ export default function AdminTabs({ users, currentUserId }: AdminTabsProps) {
             className={cn(
               'px-4 py-2.5 text-xs font-medium tracking-wide transition-colors',
               active === tab.id
-                ? 'border-b-2 border-sky-500 text-foreground'
+                ? 'border-b-2 border-foreground text-foreground'
                 : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
@@ -57,7 +55,6 @@ export default function AdminTabs({ users, currentUserId }: AdminTabsProps) {
         ))}
       </div>
 
-      {/* Tab content */}
       {active === 'users' && <UserTable users={users} currentUserId={currentUserId} />}
       {active === 'backup' && <BackupPanel />}
       {active === 'audit' && <AuditLogPanel />}
