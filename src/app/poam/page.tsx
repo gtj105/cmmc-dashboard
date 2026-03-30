@@ -17,11 +17,13 @@ export default async function PoamPage() {
 
   const orgName = await getOrgName()
   const canEdit = session.user.role === 'editor' || session.user.role === 'admin'
-  const canDelete = session.user.role === 'admin'
+  const isAdmin = session.user.role === 'admin'
 
   const [items, { effectivePractices, activePacks }] = await Promise.all([
     sql<PoamItem[]>`
-      SELECT * FROM poam_items ORDER BY
+      SELECT * FROM poam_items
+      WHERE deleted_at IS NULL
+      ORDER BY
         CASE status WHEN 'Open' THEN 1 WHEN 'In Progress' THEN 2 ELSE 3 END,
         scheduled_completion ASC NULLS LAST,
         created_at DESC
@@ -39,7 +41,7 @@ export default async function PoamPage() {
   return (
     <AppShell orgName={orgName}>
       <div className="space-y-8">
-        <PoamTable initialItems={scopedItems} canEdit={canEdit} canDelete={canDelete} />
+        <PoamTable initialItems={scopedItems} canEdit={canEdit} isAdmin={isAdmin} />
       </div>
     </AppShell>
   )

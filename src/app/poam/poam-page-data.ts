@@ -8,37 +8,24 @@ export const STATUS_COLORS: Record<PoamStatus, string> = {
 
 export const STATUSES: PoamStatus[] = ['Open', 'In Progress', 'Closed']
 
-
 export type PoamFormState = {
-  finding: string
+  gapStatement: string
+  rootCause: string
+  remediationPlan: string
+  closureEvidence: string
   practiceId: string
   owner: string
   resources: string
   date: string
 }
 
-const FINDING_TEMPLATE = `GAP STATEMENT
-What is missing or weak:
-
-
-ROOT CAUSE
-Why the gap exists:
-
-
-REMEDIATION PLAN
-Actions:
-Owner:
-Due date:
-Dependencies:
-
-
-CLOSURE EVIDENCE
-What must exist before this can be closed:`
-
-export function createEmptyPoamForm(): PoamFormState {
+export function createEmptyPoamForm(practiceId = ''): PoamFormState {
   return {
-    finding: FINDING_TEMPLATE,
-    practiceId: '',
+    gapStatement: '',
+    rootCause: '',
+    remediationPlan: '',
+    closureEvidence: '',
+    practiceId,
     owner: '',
     resources: '',
     date: '',
@@ -77,4 +64,3 @@ export function formatScheduledCompletion(value: string | null): string {
     year: 'numeric',
   })
 }
-
