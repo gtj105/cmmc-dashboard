@@ -93,6 +93,39 @@ docker compose -p cmmc-dev -f docker-compose.yml -f docker-compose.dev.yml exec 
 
 ---
 
+## Linting & Formatting
+
+### Prettier
+
+Auto-formats code. Runs automatically on staged files before every `git commit` via a Claude Code pre-commit hook — no manual step needed.
+
+To run manually:
+
+```bash
+npx prettier --write .
+```
+
+### ESLint
+
+```bash
+npx eslint . --ext .ts,.tsx        # check
+npx eslint . --ext .ts,.tsx --fix  # auto-fix what's fixable
+```
+
+The config (`eslintrc.json`) extends `next/core-web-vitals` and adds:
+
+- **Security rules** (`eslint-plugin-security`) — flags eval, non-literal file paths, timing attacks
+- **Strict equality** — `eqeqeq` errors on `==`/`!=` except for `!= null` checks (intentional TS pattern)
+- **No eval family** — `no-eval`, `no-implied-eval`, `no-new-func` are errors
+- **Type imports** — `@typescript-eslint/consistent-type-imports` enforces `import type`
+- **Unused vars** — warns, but ignores anything prefixed with `_` (use `_name` to signal intentionally unused)
+
+**Pre-commit behavior:** ESLint runs on staged `.ts`/`.tsx` files before every commit. Warnings pass through; errors block the commit.
+
+**11 intentional warnings** are left in the codebase — all `security/detect-non-literal-fs-filename` on the evidence file-serving and auth code, and one timing-attack flag. These are kept visible as security reminders, not suppressed.
+
+---
+
 ## Running Tests
 
 Tests are static — no running database or Docker required:
