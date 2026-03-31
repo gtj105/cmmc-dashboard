@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/get-session'
 import { mimeTypeForPath, resolveEvidencePath } from '@/lib/evidence'
 import { existsSync } from 'fs'

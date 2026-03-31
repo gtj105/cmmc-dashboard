@@ -6,7 +6,7 @@
 
 import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
-import postgres from 'postgres'
+import type postgres from 'postgres'
 import sql from '@/lib/db'
 
 // In production the Dockerfile copies scripts/migrations → migrations/.
@@ -69,7 +69,7 @@ export async function runMigrations(): Promise<void> {
 
     console.log(`[migrations] Done.`) // eslint-disable-line no-console
   } catch (err) {
-    console.error('[migrations] Failed:', err) // eslint-disable-line no-console
+    console.error('[migrations] Failed:', err)
     throw err
   }
 }

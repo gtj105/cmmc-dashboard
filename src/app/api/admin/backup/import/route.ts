@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/get-session'
 import { requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
   try {
     await restoreFromPayload(parsed)
   } catch (err) {
-    console.error('Import failed:', err) // eslint-disable-line no-console
+    console.error('Import failed:', err)
     return NextResponse.json({ error: 'Import failed. The database was not modified.' }, { status: 500 })
   }
 

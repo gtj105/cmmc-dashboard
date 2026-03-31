@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/get-session'
 import { requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
     // Factory reset clears the audit log — start clean
     await sql`TRUNCATE security_events RESTART IDENTITY`
   } catch (err) {
-    console.error('Factory reset failed:', err) // eslint-disable-line no-console
+    console.error('Factory reset failed:', err)
     return NextResponse.json(
       { error: 'Factory reset failed. The database may not have been modified.' },
       { status: 500 }

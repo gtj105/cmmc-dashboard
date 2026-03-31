@@ -9,7 +9,8 @@ import type {
 } from '@/lib/types'
 import { buildEffectivePractices } from './resolution'
 
-export type QueryClient = typeof import('@/lib/db').default
+import type sql from '@/lib/db'
+export type QueryClient = typeof sql
 
 export interface OverlayPackSummary extends OverlayPack {
   impacted_count: number

@@ -146,7 +146,7 @@ export function PracticeTable({ practices: initialPractices, onUpdate, canEdit =
       setJustUpdated((prev) => new Map(prev).set(id, newStatus))
       setTimeout(() => setJustUpdated((prev) => { const m = new Map(prev); m.delete(id); return m }), 700)
     } catch (err) {
-      console.error('Update failed:', err) // eslint-disable-line no-console
+      console.error('Update failed:', err)
     } finally {
       setUpdating((prev) => { const s = new Set(prev); s.delete(id); return s })
     }
