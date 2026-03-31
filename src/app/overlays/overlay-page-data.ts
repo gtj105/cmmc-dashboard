@@ -153,7 +153,7 @@ export function filterImpactedMappings(
 
 export function groupMappings(
   filteredMappings: EffectiveOverlayMapping[],
-  impactFilter: ImpactFilter,
+  _impactFilter: ImpactFilter,
 ): OverlayMappingGroup[] {
   const groups: OverlayMappingGroup[] = [
     {

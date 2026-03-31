@@ -30,6 +30,7 @@ export function checkCsrf(req: NextRequest): NextResponse | null {
     !!cookieToken &&
     !!headerToken &&
     cookieToken.length === headerToken.length &&
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('crypto').timingSafeEqual(Buffer.from(cookieToken), Buffer.from(headerToken))
 
   if (!tokensMatch) {

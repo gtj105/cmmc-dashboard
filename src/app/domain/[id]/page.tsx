@@ -9,7 +9,7 @@ import AnimatedProgress from '@/components/AnimatedProgress'
 import { PracticeTable } from '@/components/PracticeTable'
 import { FadeIn } from '@/components/FadeIn'
 import { fetchEffectivePractices } from '@/lib/overlays'
-import { computeBaselineTotals, computeCoverageTotals, computeResidualTotals } from '@/lib/overlays/scoring'
+import { computeCoverageTotals, computeResidualTotals } from '@/lib/overlays/scoring'
 import { ragTextClass } from '@/lib/ui-utils'
 
 export const dynamic = 'force-dynamic'
@@ -34,12 +34,10 @@ export default async function DomainPage({ params }: Props) {
   if (!domain) notFound()
 
   const {
-    baselinePractices,
     effectivePractices,
     activePacks,
   } = await fetchEffectivePractices(sql, { domainId })
   const hasActiveOverlay = activePacks.length > 0
-  const baselineTotals = computeBaselineTotals(baselinePractices)
   const coverageTotals = computeCoverageTotals(effectivePractices)
   const residualTotals = computeResidualTotals(effectivePractices)
 

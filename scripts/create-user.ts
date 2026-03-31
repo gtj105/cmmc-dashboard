@@ -36,8 +36,8 @@ function parseArgs(argv: string[]) {
 async function promptHidden(query: string): Promise<string> {
   return await new Promise((resolve) => {
     const rl = readline.createInterface({ input, output })
-    const originalWrite = (rl as unknown as { _writeToOutput?: (value: string) => void })._writeToOutput
-    ;(rl as unknown as { _writeToOutput: (value: string) => void })._writeToOutput = (value: string) => {
+    const originalWrite = (rl as unknown as { _writeToOutput?: (_value: string) => void })._writeToOutput
+    ;(rl as unknown as { _writeToOutput: (_value: string) => void })._writeToOutput = (_value: string) => {
       if (rl.getPrompt()) {
         output.write('*'.repeat(value.replace(/\r?\n/g, '').length))
       } else {

@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     // Factory reset clears the audit log — start clean
     await sql`TRUNCATE security_events RESTART IDENTITY`
   } catch (err) {
-    console.error('Factory reset failed:', err)
+    console.error('Factory reset failed:', err) // eslint-disable-line no-console
     return NextResponse.json(
       { error: 'Factory reset failed. The database may not have been modified.' },
       { status: 500 }

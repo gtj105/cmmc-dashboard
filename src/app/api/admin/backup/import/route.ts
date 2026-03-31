@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   try {
     await restoreFromPayload(parsed)
   } catch (err) {
-    console.error('Import failed:', err)
+    console.error('Import failed:', err) // eslint-disable-line no-console
     return NextResponse.json({ error: 'Import failed. The database was not modified.' }, { status: 500 })
   }
 

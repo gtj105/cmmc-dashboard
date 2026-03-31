@@ -50,7 +50,7 @@ export async function runMigrations(): Promise<void> {
 
     if (pending.length === 0) return
 
-    console.log(`[migrations] Running ${pending.length} pending migration(s)...`)
+    console.log(`[migrations] Running ${pending.length} pending migration(s)...`) // eslint-disable-line no-console
 
     for (const filename of pending) {
       const filepath = path.join(MIGRATIONS_DIR, filename)
@@ -64,12 +64,12 @@ export async function runMigrations(): Promise<void> {
         )
       })
 
-      console.log(`[migrations] ✓ ${filename}`)
+      console.log(`[migrations] ✓ ${filename}`) // eslint-disable-line no-console
     }
 
-    console.log(`[migrations] Done.`)
+    console.log(`[migrations] Done.`) // eslint-disable-line no-console
   } catch (err) {
-    console.error('[migrations] Failed:', err)
+    console.error('[migrations] Failed:', err) // eslint-disable-line no-console
     throw err
   }
 }

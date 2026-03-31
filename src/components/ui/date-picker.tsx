@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 interface DatePickerProps {
   value: string // YYYY-MM-DD
-  onChange: (value: string) => void
+  onChange: (_value: string) => void
   className?: string
 }
 

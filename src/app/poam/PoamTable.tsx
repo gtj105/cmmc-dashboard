@@ -37,7 +37,7 @@ function FieldTextarea({
   label: string
   required?: boolean
   value: string
-  onChange: (v: string) => void
+  onChange: (_v: string) => void
   hint?: string
   rows?: number
 }) {
@@ -67,7 +67,7 @@ function PoamFormFields({
   isClosing,
 }: {
   form: PoamFormState
-  onChange: (patch: Partial<PoamFormState>) => void
+  onChange: (_patch: Partial<PoamFormState>) => void
   isClosing: boolean
 }) {
   return (

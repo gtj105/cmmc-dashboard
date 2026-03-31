@@ -19,7 +19,7 @@ interface ImpactedControlsProps {
   mappingsLength: number
   mappingsLoading: boolean
   selectedPack: OverlayPackCard | null
-  setImpactFilter: (filter: ImpactFilter) => void
+  setImpactFilter: (_filter: ImpactFilter) => void
 }
 
 export default function ImpactedControls({

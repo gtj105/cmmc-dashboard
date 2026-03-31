@@ -5,7 +5,7 @@ import { PRACTICE_DOMAINS } from '@/lib/practice-data'
 
 interface PracticePickerProps {
   value: string
-  onChange: (value: string) => void
+  onChange: (_value: string) => void
 }
 
 export function PracticePicker({ value, onChange }: PracticePickerProps) {

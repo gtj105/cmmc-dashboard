@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs'
 import { overlayPackSeeds } from './data/overlay-pack-index'
 import {
   INHERITANCE_TYPES,
-  OVERLAY_PACK_KEYS,
   OVERLAY_PACK_STATUSES,
   RESOLVED_INHERITANCE_TYPES,
   USER_ROLE_VALUES,

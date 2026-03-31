@@ -11,7 +11,7 @@ interface EvidenceDrawerProps {
   practiceTitle: string
   canEdit: boolean
   onClose: () => void
-  onCountChange: (practiceId: string, delta: number) => void
+  onCountChange: (_practiceId: string, _delta: number) => void
 }
 
 const OBJECTIVE_STATUSES: { value: ObjectiveStatus; label: string; cls: string }[] = [

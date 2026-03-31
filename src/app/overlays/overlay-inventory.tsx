@@ -11,11 +11,11 @@ import {
 } from './overlay-page-data'
 
 interface OverlayInventoryProps {
-  handleToggle: (key: OverlayPackCard['key'], enabled: boolean) => Promise<void>
+  handleToggle: (_key: OverlayPackCard['key'], _enabled: boolean) => Promise<void>
   packByKey: Map<OverlayPackCard['key'], OverlayPackCard>
   refreshingKey: OverlayPackCard['key'] | null
   selectedKey: OverlayPackCard['key']
-  setSelectedKey: (key: OverlayPackCard['key']) => void
+  setSelectedKey: (_key: OverlayPackCard['key']) => void
 }
 
 export default function OverlayInventory({
