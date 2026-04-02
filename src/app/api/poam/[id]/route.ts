@@ -31,7 +31,7 @@ export async function PATCH(
   const authError = requireRole(session, 'editor')
   if (authError) return authError
 
-  const id = parseInt(params.id)
+  const id = parseInt(params.id, 10)
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
   let rawBody: unknown
@@ -108,7 +108,7 @@ export async function DELETE(
   const authError = requireRole(session, 'admin')
   if (authError) return authError
 
-  const id = parseInt(params.id)
+  const id = parseInt(params.id, 10)
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
   const [archived] = await sql`
