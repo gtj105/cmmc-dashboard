@@ -26,31 +26,31 @@ export async function GET(req: NextRequest) {
   }
   const { interval, step, trunc, format } = RANGE_CONFIG[raw as Range]
 
-  // All values sourced from hardcoded RANGE_CONFIG — not user-controlled
-  const rows = await sql.unsafe(`
+  // All values are from the hardcoded RANGE_CONFIG const — cast to interval/text in SQL
+  const rows = await sql`
     WITH periods AS (
       SELECT generate_series(
-        date_trunc('${trunc}', NOW() - INTERVAL '${interval}'),
-        date_trunc('${trunc}', NOW()),
-        INTERVAL '${step}'
+        date_trunc(${trunc}, NOW() - ${interval}::interval),
+        date_trunc(${trunc}, NOW()),
+        ${step}::interval
       ) AS period_start
     )
     SELECT
-      to_char(p.period_start, '${format}') AS week,
+      to_char(p.period_start, ${format}) AS week,
       COUNT(pr.id) FILTER (
         WHERE pr.status IN ('Implemented', 'Audit Ready')
-          AND date_trunc('${trunc}', pr.updated_at) <= p.period_start
+          AND date_trunc(${trunc}, pr.updated_at) <= p.period_start
       )::int AS closed,
       (SELECT COUNT(*) FROM practices WHERE framework = 'CMMC')::int -
         COUNT(pr.id) FILTER (
           WHERE pr.status IN ('Implemented', 'Audit Ready')
-            AND date_trunc('${trunc}', pr.updated_at) <= p.period_start
+            AND date_trunc(${trunc}, pr.updated_at) <= p.period_start
         )::int AS open
     FROM periods p
     LEFT JOIN practices pr ON pr.framework = 'CMMC'
     GROUP BY p.period_start
     ORDER BY p.period_start
-  `)
+  `
 
   return NextResponse.json(rows)
 }
