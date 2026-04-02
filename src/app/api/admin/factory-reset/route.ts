@@ -59,6 +59,12 @@ export async function POST(req: NextRequest) {
     await restoreFromPayload(parsed)
     // Factory reset clears the audit log — start clean
     await sql`TRUNCATE security_events RESTART IDENTITY`
+    await audit({
+      action: 'factory.reset',
+      actor: session!.user.email ?? 'admin',
+      ip: getClientIp(req.headers),
+      details: 'Factory reset to baseline',
+    })
   } catch (err) {
     console.error('Factory reset failed:', err)
     return NextResponse.json(
@@ -66,13 +72,6 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-
-  await audit({
-    action: 'factory.reset',
-    actor: session!.user.email ?? 'admin',
-    ip: getClientIp(req.headers),
-    details: 'Factory reset to baseline',
-  })
 
   return NextResponse.json({ ok: true, message: 'Factory reset complete. All data restored to baseline.' })
 }
