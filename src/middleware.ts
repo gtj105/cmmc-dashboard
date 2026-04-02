@@ -55,10 +55,12 @@ export async function middleware(req: NextRequest) {
   }
 
   // Decode JWT (cryptographic only — no DB call)
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET ?? '',
-  })
+  const secret = process.env.NEXTAUTH_SECRET
+  if (!secret) {
+    console.error('[middleware] NEXTAUTH_SECRET is not set — rejecting all requests')
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+  }
+  const token = await getToken({ req, secret })
 
   // Not authenticated → redirect to login
   if (!token) {
