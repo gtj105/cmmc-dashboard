@@ -558,14 +558,14 @@
           <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
           <div class="sec-content">
             <span class="sec-title">bcrypt password hashing</span>
-            <span class="sec-desc">10 rounds, 12-character minimum, dummy hash on unknown users to prevent timing oracle attacks</span>
+            <span class="sec-desc">Cost factor 13 (OWASP ASVS §2.4.1). Complexity enforced: uppercase, lowercase, digit, symbol. Password history blocks reuse of last 5. Dummy hash on unknown users prevents timing oracle.</span>
           </div>
         </li>
         <li class="security-item">
           <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
           <div class="sec-content">
-            <span class="sec-title">Token revocation</span>
-            <span class="sec-desc">Per-token JTI blacklist on logout + per-user invalidation table on deletion. Enforced on every request.</span>
+            <span class="sec-title">JWT sessions · token revocation</span>
+            <span class="sec-desc">8-hour absolute TTL with 30-minute inactivity timeout. Per-token JTI blacklist on logout + per-user invalidation on deletion — enforced on every request.</span>
           </div>
         </li>
         <li class="security-item">
@@ -579,7 +579,7 @@
           <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
           <div class="sec-content">
             <span class="sec-title">Database-backed rate limiting</span>
-            <span class="sec-desc">5 failed logins → 15-minute lockout tracked in PostgreSQL (survives restarts). Nginx limits general API to 10 req/s.</span>
+            <span class="sec-desc">5 failed logins → 15-minute lockout in PostgreSQL (survives restarts). Nginx: 3 req/s login, 10 req/s API, 2 req/s evidence upload, 1 req/min backup.</span>
           </div>
         </li>
         <li class="security-item">
@@ -606,8 +606,8 @@
         <li class="security-item">
           <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
           <div class="sec-content">
-            <span class="sec-title">CSP + 12 Nginx security headers</span>
-            <span class="sec-desc">Full Content Security Policy blocking inline scripts. HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy at the proxy layer.</span>
+            <span class="sec-title">Nonce-based CSP · 12 security headers</span>
+            <span class="sec-desc">Per-request cryptographic nonce in script-src — no unsafe-inline or unsafe-eval. Backup exports are HMAC-signed; imports verify integrity. File uploads checked against magic bytes. HSTS, X-Frame-Options, Referrer-Policy at the proxy layer.</span>
           </div>
         </li>
       </ul>
