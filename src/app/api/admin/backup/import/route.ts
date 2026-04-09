@@ -5,6 +5,7 @@ import { requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import { audit, getClientIp } from '@/lib/audit'
 import { validatePayload, restoreFromPayload } from '@/lib/restore'
+import { verifyBackup } from '@/lib/backup-hmac'
 
 export async function POST(req: NextRequest) {
   const csrfError = checkCsrf(req)
@@ -41,6 +42,12 @@ export async function POST(req: NextRequest) {
 
   try {
     validatePayload(parsed)
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 400 })
+  }
+
+  try {
+    verifyBackup(parsed)
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 400 })
   }

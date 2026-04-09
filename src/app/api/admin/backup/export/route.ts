@@ -6,6 +6,7 @@ import { getAuthSession } from '@/lib/get-session'
 import { requireRole } from '@/lib/auth'
 import sql from '@/lib/db'
 import { audit, getClientIp } from '@/lib/audit'
+import { signBackup } from '@/lib/backup-hmac'
 
 export async function GET(req: NextRequest) {
   const session = await getAuthSession()
@@ -35,11 +36,16 @@ export async function GET(req: NextRequest) {
     overlay_validations: overlayValidations,
   }
 
+  const signedPayload = {
+    ...payload,
+    _hmac: signBackup(payload as Record<string, unknown>),
+  }
+
   const date = new Date().toISOString().slice(0, 10)
   const filename = `cmmc-backup-${date}.json`
 
   await audit({ action: 'backup.exported', actor: session!.user.email ?? 'admin', ip: getClientIp(req.headers) })
-  return new NextResponse(JSON.stringify(payload, null, 2), {
+  return new NextResponse(JSON.stringify(signedPayload, null, 2), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
