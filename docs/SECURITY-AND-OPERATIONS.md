@@ -1,5 +1,23 @@
 # Security And Operations Notes
 
+## Security Hardening — April 2026 (OWASP ASVS review)
+
+The following controls were added or strengthened in April 2026 based on a full OWASP ASVS-aligned review:
+
+1. **bcrypt cost factor raised to 13** — OWASP ASVS §2.4.1. Applies to all new hashes. The `DUMMY_HASH` used for timing protection on unknown-email logins was also regenerated at cost 13 to maintain equal compare time.
+2. **Password complexity enforced** — Passwords must contain at least one uppercase letter, lowercase letter, digit, and special character in addition to the 12-character minimum (OWASP ASVS §2.1.1).
+3. **Password history** — The last 5 password hashes are stored per user in `password_history`; reuse of any of them is rejected (OWASP ASVS §2.1.9).
+4. **File upload magic number validation** — `validateFileMagic()` reads the first bytes of every uploaded evidence file and compares against expected magic bytes for the declared extension. Client-supplied MIME type is no longer trusted.
+5. **ZIP files removed from allowed evidence types** — Eliminates decompression bomb risk. PDF, images, Office docs (.docx/.xlsx), CSV, and plain text remain allowed.
+6. **Nonce-based Content Security Policy** — Per-request cryptographic nonce generated in Edge middleware. `script-src` no longer includes `unsafe-inline` or `unsafe-eval`. CSP header is set by middleware (not nginx) so the nonce is available to Next.js.
+7. **Backup HMAC signing** — Every exported backup is signed with HMAC-SHA256 keyed on `NEXTAUTH_SECRET`. The import endpoint rejects any backup without a valid `_hmac` field. Timing-safe comparison prevents signature oracle attacks.
+8. **Factory reset step-up authentication** — The `POST /api/admin/factory-reset` endpoint now requires the admin's current password in the request body. A wrong password is audit-logged and rejected with 403.
+9. **JWT TTL reduced; inactivity timeout added** — Absolute TTL reduced from 24 hours to 8 hours. A `lastActive` claim is updated on every authenticated request; sessions idle for more than 30 minutes are rejected server-side (OWASP ASVS §3.3.2).
+10. **Database TLS enforced in production** — `rejectUnauthorized: true` in the postgres connection config when `NODE_ENV=production`. Docker loopback connections in dev/local skip SSL.
+11. **Rate limits for evidence upload and backup** — nginx: evidence upload capped at 2 req/s (burst 3); backup export/import at 1 req/min (burst 2).
+12. **`/api/health` restricted to internal networks** — nginx allows only `127.0.0.1`, Docker bridge (`172.16.0.0/12`), and internal (`10.0.0.0/8`); all other sources receive 403. The Docker healthcheck hits port 3000 directly and is unaffected.
+13. **Random initial admin password** — `deploy-prod.sh` generates a cryptographically random 20-character password via `openssl rand` and prints it once. The hardcoded `admin` default is gone. `must_change_password` is set to `true` on the seeded admin user.
+
 ## Security Hardening — March 2026
 
 The following controls were added in March 2026:
@@ -11,7 +29,7 @@ The following controls were added in March 2026:
 5. **Zod row-level validation on backup restore** — every row in an uploaded backup is validated against its Zod schema; malformed payloads are rejected before touching the database.
 6. **Backup restore never accepts password hashes** — `password_hash` is rejected from any restore payload; all restored users are forced to set a new password on first login.
 7. **Timing-safe CSRF token comparison** — `checkCsrf()` uses `crypto.timingSafeEqual` to prevent timing-based token oracle attacks.
-8. **CSRF `Secure` flag conditioned on HTTPS** — `csrfCookieHeaders()` sets `Secure` only when `NEXTAUTH_URL` starts with `https`, so the cookie works correctly in HTTP-only dev environments.
+8. **CSRF `Secure` flag conditioned on HTTPS** — sets `Secure` only when `NEXTAUTH_URL` starts with `https`, so the cookie works correctly in HTTP-only dev environments.
 9. **Health endpoint error masking** — `/api/health` returns generic status messages to callers; detailed DB errors are logged server-side only.
 10. **Evidence URL validation** — URL fields accept only `http`/`https` scheme, capped at 2048 characters; other schemes and overlong values are rejected at the API layer.
 
@@ -84,8 +102,9 @@ The JSON export contains:
 - compliance tracking data
 - POA&M data
 - activity history
-- user records
-- password hashes
+- user records (no password hashes — intentionally excluded)
+
+Exports are HMAC-signed with `NEXTAUTH_SECRET`. Imports verify the signature before touching the database — tampered or unsigned files are rejected.
 
 Treat exported files as sensitive operational backups.
 
