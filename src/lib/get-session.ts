@@ -1,11 +1,11 @@
 // src/lib/get-session.ts
 //
 // Drop-in replacement for getServerSession(getAuthOptions()) that also
-// enforces token revocation. Use this in ALL API routes.
+// enforces token revocation and inactivity timeout. Use this in ALL API routes.
 
 import { getServerSession } from 'next-auth'
 import type { Session } from 'next-auth'
-import { getAuthOptions } from '@/lib/auth'
+import { getAuthOptions, INACTIVITY_TIMEOUT_SECONDS } from '@/lib/auth'
 import { isTokenRevoked, isUserInvalidated } from '@/lib/token-revocation'
 
 /**
@@ -25,6 +25,16 @@ export async function getAuthSession(): Promise<Session | null> {
 
   // Check per-user invalidation (user deleted)
   if (userId && iat && (await isUserInvalidated(parseInt(userId, 10), iat))) return null
+
+  // Check inactivity timeout — tokens without lastActive (issued before this change)
+  // are not rejected, ensuring a graceful rollout.
+  const lastActive = (session as unknown as Record<string, unknown>).lastActive as number | undefined
+  if (typeof lastActive === 'number') {
+    const idleSeconds = Math.floor(Date.now() / 1000) - lastActive
+    if (idleSeconds > INACTIVITY_TIMEOUT_SECONDS) {
+      return null  // Session expired due to inactivity
+    }
+  }
 
   return session
 }

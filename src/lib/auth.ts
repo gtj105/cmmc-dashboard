@@ -11,8 +11,11 @@ import type { UserRole } from '@/lib/types'
 
 const DUMMY_HASH = '$2a$13$CjqYzfTQZwwfPtc9EfFKNupVWf1l5/ZiW3KJWB1rhy2HatgkjaJMS'
 
-// JWT maxAge — tokens are valid for 24 hours
-const JWT_MAX_AGE_SECONDS = 24 * 60 * 60
+// JWT maxAge — tokens are valid for 8 hours
+const JWT_MAX_AGE_SECONDS = 8 * 60 * 60
+
+// Sessions idle longer than this are rejected server-side
+export const INACTIVITY_TIMEOUT_SECONDS = 30 * 60  // 30 minutes
 
 // ---------------------------------------------------------------------------
 // DB-backed login rate limiter (per email address)
@@ -161,6 +164,8 @@ export function getAuthOptions(): NextAuthOptions {
           token.mustChangePassword = 'mustChangePassword' in user ? Boolean(user.mustChangePassword) : false
           token.expiresAt = Math.floor(Date.now() / 1000) + JWT_MAX_AGE_SECONDS
         }
+        // Always refresh lastActive so inactivity can be tracked server-side
+        token.lastActive = Math.floor(Date.now() / 1000)
         return token
       },
       async session({ session, token }) {
