@@ -511,10 +511,11 @@ async function seed() {
 
   // ── Admin user ──
   console.log('Creating admin user...')
-  const passwordHash = await bcrypt.hash('admin', 10)
+  const adminPassword = process.env.ADMIN_INITIAL_PASSWORD ?? 'admin'
+  const passwordHash = await bcrypt.hash(adminPassword, 13)
   await sql`
     INSERT INTO users (email, password_hash, name, role, must_change_password)
-    VALUES ('admin@localhost', ${passwordHash}, 'Admin', 'admin', false)
+    VALUES ('admin@localhost', ${passwordHash}, 'Admin', 'admin', true)
   `
 
   // ── Verify counts ──
