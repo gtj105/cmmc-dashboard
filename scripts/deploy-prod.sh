@@ -119,11 +119,9 @@ echo "Step 6/6 — Seeding database with baseline data..."
 PG_PASS=$(cat secrets/postgres_password.txt)
 DB_URL="postgresql://cmmc_user:${PG_PASS}@db:5432/cmmc_db"
 COMPOSE_PROJECT=$(docker compose config --format json 2>/dev/null | grep '"Name"' | head -1 | sed 's/.*"Name": "\(.*\)".*/\1/' || basename "$(pwd)")
-ADMIN_PASS=$(openssl rand -base64 18 | tr -d '/+=' | head -c 20)
 docker run --rm \
   --network "${COMPOSE_PROJECT}_default" \
   -e DATABASE_URL="${DB_URL}" \
-  -e ADMIN_INITIAL_PASSWORD="${ADMIN_PASS}" \
   -v "$(pwd):/app" \
   -w /app \
   node:20-alpine \
@@ -138,10 +136,7 @@ echo "╚═══════════════════════�
 echo ""
 echo "  URL:      $(grep '^NEXTAUTH_URL=' ${ENV_FILE} | cut -d= -f2)"
 echo "  Login:    admin@localhost"
-echo "  Password: ${ADMIN_PASS}"
-echo ""
-echo "  This password will NOT be shown again. Save it now."
-echo "  Change it at: Settings → Change Password"
+echo "  Password: admin  (you will be prompted to change this on first login)"
 echo ""
 echo "  Set your organization name under Settings → Organization (admin only)."
 echo ""
