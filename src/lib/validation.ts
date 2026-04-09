@@ -142,3 +142,13 @@ export const PasswordChangeSchema = z.object({
 export function parsePasswordChange(body: unknown) {
   return PasswordChangeSchema.safeParse(body)
 }
+
+// ─── Factory reset ────────────────────────────────────────────────────────────
+
+export const FactoryResetSchema = z.object({
+  confirm_password: z.string().min(1, 'Password confirmation is required').max(128),
+})
+
+export function parseFactoryReset(body: unknown) {
+  return FactoryResetSchema.safeParse(body)
+}

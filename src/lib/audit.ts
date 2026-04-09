@@ -23,6 +23,7 @@ export type AuditAction =
   | 'backup.exported'
   | 'backup.imported'
   | 'factory.reset'
+  | 'factory.reset.denied'
   | 'practice.updated'
   | 'evidence.uploaded'
   | 'evidence.deleted'

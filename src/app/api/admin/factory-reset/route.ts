@@ -1,9 +1,11 @@
 import type { NextRequest} from 'next/server';
 import { NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
 import { getAuthSession } from '@/lib/get-session'
 import { requireRole } from '@/lib/auth'
 import { checkCsrf } from '@/lib/api-csrf'
 import { audit, getClientIp } from '@/lib/audit'
+import { parseFactoryReset, validationError } from '@/lib/validation'
 import { validatePayload, restoreFromPayload } from '@/lib/restore'
 import sql from '@/lib/db'
 import { readFile } from 'node:fs/promises'
@@ -27,6 +29,34 @@ export async function POST(req: NextRequest) {
   const session = await getAuthSession()
   const authError = requireRole(session, 'admin')
   if (authError) return authError
+
+  // Parse confirmation password from request body
+  let rawBody: unknown
+  try {
+    rawBody = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Request body with confirm_password required' }, { status: 400 })
+  }
+
+  const confirmParsed = parseFactoryReset(rawBody)
+  if (!confirmParsed.success) return validationError(confirmParsed.error)
+
+  const adminEmail = session!.user.email!
+  const [adminUser] = await sql<{ password_hash: string }[]>`
+    SELECT password_hash FROM users WHERE email = ${adminEmail}
+  `
+  if (!adminUser) return NextResponse.json({ error: 'Admin user not found' }, { status: 403 })
+
+  const passwordValid = await bcrypt.compare(confirmParsed.data.confirm_password, adminUser.password_hash)
+  if (!passwordValid) {
+    await audit({
+      action: 'factory.reset.denied',
+      actor: adminEmail,
+      ip: getClientIp(req.headers),
+      details: 'Wrong confirmation password',
+    })
+    return NextResponse.json({ error: 'Incorrect password' }, { status: 403 })
+  }
 
   // Load baseline file
   const baselinePath = path.resolve(process.cwd(), 'scripts/data/baseline.json')
