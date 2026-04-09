@@ -9,7 +9,7 @@ export const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25 MB
 
 const ALLOWED_EXTENSIONS = new Set([
   '.pdf', '.png', '.jpg', '.jpeg', '.gif',
-  '.docx', '.xlsx', '.csv', '.txt', '.zip',
+  '.docx', '.xlsx', '.csv', '.txt',
 ])
 
 const ALLOWED_MIME_TYPES = new Set([
@@ -21,7 +21,6 @@ const ALLOWED_MIME_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'text/csv',
   'text/plain',
-  'application/zip',
 ])
 
 const MIME_MAP: Record<string, string> = {
@@ -34,7 +33,6 @@ const MIME_MAP: Record<string, string> = {
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   '.csv':  'text/csv',
   '.txt':  'text/plain',
-  '.zip':  'application/zip',
 }
 
 const PATH_SEGMENT_RE = /^[a-zA-Z0-9._-]+$/
