@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CMMC Dashboard — Compliance tracking for defense contractors</title>
+  <meta name="description" content="Open-source CMMC Level 2 + ITAR compliance dashboard. Track 130 practices, manage POA&Ms, score SPRS in real time. Self-hosted on Docker. One command to deploy.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0e0d0c;
+      --bg-raised:  #141311;
+      --bg-subtle:  #1a1917;
+      --border:     #252320;
+      --border-mid: #302e2b;
+      --text:       #e2ddd8;
+      --text-muted: #8a857e;
+      --text-faint: #504c47;
+      --amber:      #c98a2a;
+      --amber-dim:  #7a511a;
+      --green:      #3d6b4a;
+      --green-text: #7ab88a;
+      --red-dim:    #5c2020;
+      --font-display: 'Syne', sans-serif;
+      --font-body:    'DM Sans', sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ─── UTILITIES ─────────────────────────────────── */
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.5rem, 5vw, 4rem); }
+    .mono { font-family: var(--font-mono); }
+    hr.rule { border: none; border-top: 1px solid var(--border); }
+
+    /* ─── NAV ───────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg) 90%, transparent);
+      backdrop-filter: blur(12px);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .nav-logo {
+      font-family: var(--font-display);
+      font-weight: 700; font-size: 0.95rem;
+      color: var(--text); text-decoration: none;
+      letter-spacing: 0.02em;
+    }
+    .nav-logo span { color: var(--amber); }
+    .nav-links { display: flex; align-items: center; gap: 2rem; }
+    .nav-links a {
+      color: var(--text-muted); text-decoration: none;
+      font-size: 0.875rem; font-weight: 400;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .btn-github {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border: 1px solid var(--border-mid);
+      border-radius: 6px;
+      color: var(--text) !important;
+      font-size: 0.8rem !important;
+      font-weight: 500 !important;
+      background: var(--bg-raised);
+      transition: border-color 0.15s, background 0.15s !important;
+    }
+    .btn-github:hover { border-color: var(--amber-dim) !important; background: var(--bg-subtle) !important; }
+    .btn-github svg { flex-shrink: 0; }
+
+    /* ─── HERO ──────────────────────────────────────── */
+    .hero {
+      padding: clamp(7rem, 14vw, 11rem) 0 clamp(4rem, 8vw, 7rem);
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem; font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.08em; text-transform: uppercase;
+      margin-bottom: 1.75rem;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      display: block; width: 20px; height: 1px;
+      background: var(--amber);
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.6rem, 6vw, 5rem);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      max-width: 820px;
+      margin-bottom: 1.75rem;
+    }
+    .hero h1 em {
+      font-style: normal;
+      color: var(--amber);
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--text-muted);
+      max-width: 580px;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+      font-weight: 300;
+    }
+    .hero-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 3.5rem; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.65rem 1.4rem;
+      background: var(--amber);
+      color: #0e0d0c;
+      font-family: var(--font-body);
+      font-weight: 500; font-size: 0.9rem;
+      border: none; border-radius: 6px;
+      cursor: pointer; text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.65rem 1.4rem;
+      background: transparent;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-weight: 400; font-size: 0.9rem;
+      border: 1px solid var(--border-mid);
+      border-radius: 6px;
+      cursor: pointer; text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .btn-outline:hover { border-color: var(--text-muted); }
+
+    .hero-stats {
+      display: flex; gap: clamp(1.5rem, 4vw, 3.5rem);
+      flex-wrap: wrap;
+      padding-top: 2.5rem;
+      border-top: 1px solid var(--border);
+    }
+    .stat-item { display: flex; flex-direction: column; gap: 0.2rem; }
+    .stat-number {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 700; line-height: 1;
+      color: var(--text);
+    }
+    .stat-label {
+      font-size: 0.78rem; color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* ─── SCREENSHOT ────────────────────────────────── */
+    .screenshot-section {
+      padding: clamp(3rem, 7vw, 6rem) 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .screenshot-frame {
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+    .screenshot-frame::before {
+      content: '';
+      position: absolute; inset: 0;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+      border-radius: 10px;
+      z-index: 1; pointer-events: none;
+    }
+    .screenshot-frame img {
+      display: block; width: 100%;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .screenshot-frame:hover img { transform: scale(1.01); }
+    .screenshot-caption {
+      margin-top: 1rem;
+      font-size: 0.8rem; color: var(--text-faint);
+      text-align: center;
+      font-family: var(--font-mono);
+    }
+
+    /* ─── SECTION HEADER ────────────────────────────── */
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem; font-weight: 500;
+      color: var(--amber);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.7rem, 3.5vw, 2.6rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+    .section-sub {
+      font-size: 1rem; color: var(--text-muted);
+      max-width: 520px; line-height: 1.7;
+      font-weight: 300;
+    }
+
+    /* ─── FEATURES ──────────────────────────────────── */
+    .features-section {
+      padding: clamp(4rem, 8vw, 7rem) 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .features-header { margin-bottom: 3.5rem; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .feature {
+      background: var(--bg);
+      padding: clamp(1.5rem, 3vw, 2rem) clamp(1.25rem, 2.5vw, 1.75rem);
+      transition: background 0.15s;
+    }
+    .feature:hover { background: var(--bg-raised); }
+    .feature.col-8 { grid-column: span 8; }
+    .feature.col-4 { grid-column: span 4; }
+    .feature.col-6 { grid-column: span 6; }
+    .feature.col-12 { grid-column: span 12; }
+
+    @media (max-width: 768px) {
+      .feature.col-8, .feature.col-4, .feature.col-6 { grid-column: span 12; }
+    }
+
+    .feature-icon {
+      width: 36px; height: 36px;
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1.1rem;
+      color: var(--amber);
+    }
+    .feature-title {
+      font-family: var(--font-display);
+      font-size: 1.05rem; font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.01em;
+    }
+    .feature-body {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+      font-weight: 300;
+    }
+    .feature-tag {
+      display: inline-block;
+      margin-top: 0.85rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--green-text);
+      background: color-mix(in srgb, var(--green) 20%, transparent);
+      border: 1px solid color-mix(in srgb, var(--green) 40%, transparent);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    /* ─── SECURITY ──────────────────────────────────── */
+    .security-section {
+      padding: clamp(4rem, 8vw, 7rem) 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .security-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(2rem, 5vw, 5rem);
+      align-items: start;
+    }
+    @media (max-width: 768px) { .security-layout { grid-template-columns: 1fr; } }
+
+    .security-list { list-style: none; display: flex; flex-direction: column; gap: 0; }
+    .security-item {
+      display: flex; gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .security-item:first-child { border-top: 1px solid var(--border); }
+    .sec-check {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      margin-top: 2px;
+      color: var(--green-text);
+    }
+    .sec-content { display: flex; flex-direction: column; gap: 0.2rem; }
+    .sec-title { font-size: 0.9rem; font-weight: 500; color: var(--text); }
+    .sec-desc { font-size: 0.8rem; color: var(--text-muted); font-weight: 300; line-height: 1.5; }
+
+    /* ─── ARCHITECTURE ──────────────────────────────── */
+    .arch-section {
+      padding: clamp(4rem, 8vw, 7rem) 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .arch-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: clamp(2rem, 5vw, 5rem);
+      align-items: center;
+    }
+    @media (max-width: 768px) { .arch-layout { grid-template-columns: 1fr; } }
+
+    .arch-diagram {
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg-subtle);
+    }
+    .arch-diagram img { display: block; width: 100%; }
+
+    .arch-services { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1.5rem; }
+    .arch-service {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-raised);
+    }
+    .service-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .dot-green { background: var(--green-text); }
+    .dot-amber { background: var(--amber); }
+    .dot-blue  { background: #5b8ebd; }
+    .dot-muted { background: var(--text-faint); }
+    .service-name {
+      font-family: var(--font-mono);
+      font-size: 0.8rem; color: var(--text);
+    }
+    .service-desc { font-size: 0.78rem; color: var(--text-muted); margin-left: auto; font-weight: 300; }
+
+    /* ─── STACK ─────────────────────────────────────── */
+    .stack-section {
+      padding: clamp(4rem, 8vw, 7rem) 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 2.5rem;
+    }
+    .stack-item {
+      background: var(--bg);
+      padding: 1.25rem 1.5rem;
+      display: flex; flex-direction: column; gap: 0.25rem;
+    }
+    .stack-name {
+      font-family: var(--font-display);
+      font-size: 0.95rem; font-weight: 600; color: var(--text);
+    }
+    .stack-version {
+      font-family: var(--font-mono);
+      font-size: 0.72rem; color: var(--text-muted);
+    }
+
+    /* ─── DEPLOY ─────────────────────────────────────── */
+    .deploy-section {
+      padding: clamp(4rem, 8vw, 7rem) 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .deploy-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(2rem, 5vw, 5rem);
+      align-items: center;
+    }
+    @media (max-width: 768px) { .deploy-layout { grid-template-columns: 1fr; } }
+
+    .terminal {
+      background: #0a0909;
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .terminal-bar {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-raised);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #4a2020; }
+    .dot-y { background: #4a3d1a; }
+    .dot-g { background: #1e3d25; }
+    .terminal-title {
+      font-family: var(--font-mono);
+      font-size: 0.7rem; color: var(--text-faint);
+      margin-left: auto; margin-right: auto;
+    }
+    .terminal-body { padding: 1.25rem 1.5rem; }
+    .terminal-line {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.8;
+    }
+    .t-prompt { color: var(--text-faint); }
+    .t-cmd { color: var(--text); }
+    .t-output { color: var(--text-muted); font-weight: 300; }
+    .t-ok { color: var(--green-text); }
+    .t-amber { color: var(--amber); }
+    .t-blank { height: 0.6rem; }
+
+    .deploy-steps { display: flex; flex-direction: column; gap: 1.25rem; }
+    .deploy-step { display: flex; gap: 1rem; align-items: flex-start; }
+    .step-num {
+      flex-shrink: 0;
+      width: 24px; height: 24px;
+      border: 1px solid var(--border-mid);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 0.7rem; color: var(--text-muted);
+    }
+    .step-text { display: flex; flex-direction: column; gap: 0.2rem; }
+    .step-title { font-size: 0.9rem; font-weight: 500; color: var(--text); }
+    .step-desc { font-size: 0.8rem; color: var(--text-muted); font-weight: 300; line-height: 1.5; }
+
+    /* ─── FOOTER ─────────────────────────────────────── */
+    footer {
+      padding: 3rem 0;
+      display: flex; flex-direction: column;
+    }
+    .footer-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .footer-brand {
+      font-family: var(--font-display);
+      font-size: 0.85rem; font-weight: 600;
+      color: var(--text-muted);
+    }
+    .footer-brand span { color: var(--amber); }
+    .footer-note {
+      font-size: 0.78rem; color: var(--text-faint);
+      font-weight: 300;
+    }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a {
+      font-size: 0.78rem; color: var(--text-faint);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .footer-links a:hover { color: var(--text-muted); }
+
+    /* ─── SCROLL REVEAL ─────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.08s; }
+    .reveal-delay-2 { transition-delay: 0.16s; }
+    .reveal-delay-3 { transition-delay: 0.24s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── NAV ──────────────────────────────────────────── -->
+<nav>
+  <div class="container nav-inner">
+    <a href="#" class="nav-logo">CMMC<span>.</span>Dashboard</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#security">Security</a>
+      <a href="#architecture">Architecture</a>
+      <a href="https://github.com/gtj105/cmmc-dashboard" class="btn-github" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        View on GitHub
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── HERO ──────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">CMMC Level 2 &nbsp;·&nbsp; ITAR &nbsp;·&nbsp; Open Source</div>
+    <h1>Compliance visibility<br>that earns <em>trust.</em></h1>
+    <p class="hero-sub">
+      A self-hosted dashboard for defense contractors tracking CMMC Level 2 and ITAR posture.
+      Real-time SPRS scoring, full POA&amp;M lifecycle, evidence management — all data stays on your machine.
+    </p>
+    <div class="hero-actions">
+      <a href="https://github.com/gtj105/cmmc-dashboard" class="btn-primary" target="_blank" rel="noopener">
+        Get the code
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a href="#features" class="btn-outline">See features</a>
+    </div>
+    <div class="hero-stats reveal">
+      <div class="stat-item">
+        <span class="stat-number">130</span>
+        <span class="stat-label">Practices tracked</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">14</span>
+        <span class="stat-label">CMMC domains</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">4</span>
+        <span class="stat-label">Microsoft overlays</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">0</span>
+        <span class="stat-label">Cloud dependencies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SCREENSHOT ────────────────────────────────────── -->
+<section class="screenshot-section">
+  <div class="container">
+    <div class="screenshot-frame reveal">
+      <img src="screenshots/overview.png" alt="CMMC Dashboard overview — SPRS score gauge, domain health, burndown chart" loading="lazy">
+    </div>
+    <p class="screenshot-caption reveal reveal-delay-1">Overview dashboard — SPRS score, domain health, burndown, critical practices</p>
+  </div>
+</section>
+
+<!-- ─── FEATURES ─────────────────────────────────────── -->
+<section class="features-section" id="features">
+  <div class="container">
+    <div class="features-header">
+      <p class="section-label">Capabilities</p>
+      <h2 class="section-title">Everything the program needs.<br>Nothing it doesn't.</h2>
+    </div>
+    <div class="features-grid reveal">
+
+      <div class="feature col-8">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+        </div>
+        <div class="feature-title">110 CMMC + 20 ITAR practices</div>
+        <div class="feature-body">
+          Full CMMC Level 2 practice set pre-loaded across all 14 domains, plus a complete ITAR controls track.
+          Set status, risk level, owner, due date, and notes on each practice. Filterable, sortable, audited.
+        </div>
+        <span class="feature-tag">DoD Assessment Methodology v1.2.1</span>
+      </div>
+
+      <div class="feature col-4">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        </div>
+        <div class="feature-title">Real-time SPRS score</div>
+        <div class="feature-body">
+          Live SPRS score calculated from practice statuses using DoD weighting.
+          Per-domain breakdown, historical trend, at-a-glance gauge.
+        </div>
+      </div>
+
+      <div class="feature col-4">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4"/></svg>
+        </div>
+        <div class="feature-title">POA&amp;M lifecycle</div>
+        <div class="feature-body">
+          Create findings, assign remediation plans, track milestone progress (0–100%), record responsible parties and resources.
+          Full change history on every item.
+        </div>
+      </div>
+
+      <div class="feature col-4">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </div>
+        <div class="feature-title">Evidence management</div>
+        <div class="feature-body">
+          Attach files or external URLs to any practice. Per-practice evidence drawer with assessment
+          objective status tracking (met / partial / not met).
+        </div>
+      </div>
+
+      <div class="feature col-4">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </div>
+        <div class="feature-title">Microsoft overlay packs</div>
+        <div class="feature-body">
+          Built-in mappings for Microsoft 365 GCC High, Azure Government, Defender, and Purview.
+          See which CMMC controls are inherited vs. customer-owned.
+        </div>
+      </div>
+
+      <div class="feature col-4">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+        </div>
+        <div class="feature-title">Printable assessment report</div>
+        <div class="feature-body">
+          Cmd+P (or Ctrl+P) renders a clean assessment report. No export wizard, no formatting issues —
+          optimised print stylesheet, ready for C3PAO briefings.
+        </div>
+      </div>
+
+      <div class="feature col-4">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="feature-title">Activity &amp; audit log</div>
+        <div class="feature-body">
+          Immutable record of every practice change, login event, and admin action.
+          Who changed what field, from what value, at what time.
+        </div>
+      </div>
+
+      <div class="feature col-4">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        </div>
+        <div class="feature-title">Automated nightly backups</div>
+        <div class="feature-body">
+          Dockerised backup service runs pg_dump + evidence files every night.
+          30-day retention, weekly verification, one-command restore.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─── SECURITY ──────────────────────────────────────── -->
+<section class="security-section" id="security">
+  <div class="container">
+    <div class="security-layout">
+      <div>
+        <p class="section-label">Security</p>
+        <h2 class="section-title">Built for environments<br>that get audited.</h2>
+        <p class="section-sub">
+          A compliance tool that isn't itself secure undermines the program it tracks.
+          Every layer has been reviewed against OWASP Top 10.
+        </p>
+      </div>
+      <ul class="security-list reveal">
+        <li class="security-item">
+          <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <div class="sec-content">
+            <span class="sec-title">bcrypt password hashing</span>
+            <span class="sec-desc">10 rounds, 12-character minimum, dummy hash on unknown users to prevent timing oracle attacks</span>
+          </div>
+        </li>
+        <li class="security-item">
+          <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <div class="sec-content">
+            <span class="sec-title">Token revocation</span>
+            <span class="sec-desc">Per-token JTI blacklist on logout + per-user invalidation table on account deletion. Revocation enforced on every request.</span>
+          </div>
+        </li>
+        <li class="security-item">
+          <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <div class="sec-content">
+            <span class="sec-title">CSRF double-submit cookies</span>
+            <span class="sec-desc">Timing-safe comparison via crypto.timingSafeEqual on all mutation endpoints (POST, PATCH, DELETE)</span>
+          </div>
+        </li>
+        <li class="security-item">
+          <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <div class="sec-content">
+            <span class="sec-title">Database-backed rate limiting</span>
+            <span class="sec-desc">5 failed logins → 15-minute lockout, tracked in PostgreSQL (survives app restarts). Nginx limits general API to 10 req/s.</span>
+          </div>
+        </li>
+        <li class="security-item">
+          <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <div class="sec-content">
+            <span class="sec-title">Zod schema validation on every endpoint</span>
+            <span class="sec-desc">All mutating routes validate against typed Zod schemas before touching the database. Parameterised queries throughout — no raw SQL with user input.</span>
+          </div>
+        </li>
+        <li class="security-item">
+          <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <div class="sec-content">
+            <span class="sec-title">Role-based access control</span>
+            <span class="sec-desc">viewer / editor / admin enforced at the API layer. Backup restore never imports password hashes; restored users must set a new password.</span>
+          </div>
+        </li>
+        <li class="security-item">
+          <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <div class="sec-content">
+            <span class="sec-title">Docker secrets — never env vars</span>
+            <span class="sec-desc">PostgreSQL password and NextAuth secret stored as Docker secret files. Injected at runtime by entrypoint script, never written to environment or logs.</span>
+          </div>
+        </li>
+        <li class="security-item">
+          <svg class="sec-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <div class="sec-content">
+            <span class="sec-title">Content Security Policy + 12 Nginx headers</span>
+            <span class="sec-desc">Full CSP blocking inline scripts. HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and more — all configured at the reverse proxy layer.</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── ARCHITECTURE ──────────────────────────────────── -->
+<section class="arch-section" id="architecture">
+  <div class="container">
+    <div class="arch-layout">
+      <div>
+        <p class="section-label">Architecture</p>
+        <h2 class="section-title">Four containers.<br>No cloud required.</h2>
+        <p class="section-sub">
+          Everything runs in Docker Compose on a single machine.
+          No vendor accounts, no SaaS billing, no data leaving your network.
+        </p>
+        <div class="arch-services reveal reveal-delay-1">
+          <div class="arch-service">
+            <span class="service-dot dot-amber"></span>
+            <span class="service-name">nginx</span>
+            <span class="service-desc">Reverse proxy, rate limiting, TLS, security headers</span>
+          </div>
+          <div class="arch-service">
+            <span class="service-dot dot-green"></span>
+            <span class="service-name">app</span>
+            <span class="service-desc">Next.js 14 · standalone output · auto-migrations</span>
+          </div>
+          <div class="arch-service">
+            <span class="service-dot dot-blue"></span>
+            <span class="service-name">db</span>
+            <span class="service-desc">PostgreSQL 15 · bound to 127.0.0.1 only</span>
+          </div>
+          <div class="arch-service">
+            <span class="service-dot dot-muted"></span>
+            <span class="service-name">backup</span>
+            <span class="service-desc">Nightly pg_dump · 30-day retention · weekly verify</span>
+          </div>
+        </div>
+      </div>
+      <div class="arch-diagram reveal">
+        <img src="screenshots/architecture.png" alt="System architecture diagram showing nginx, app, db, and backup services" loading="lazy">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── STACK ─────────────────────────────────────────── -->
+<section class="stack-section">
+  <div class="container">
+    <p class="section-label">Tech stack</p>
+    <h2 class="section-title">Standard, auditable, replaceable.</h2>
+    <div class="stack-grid reveal">
+      <div class="stack-item">
+        <span class="stack-name">Next.js</span>
+        <span class="stack-version">14.2 · App Router</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-name">TypeScript</span>
+        <span class="stack-version">5 · strict mode</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-name">PostgreSQL</span>
+        <span class="stack-version">15-alpine</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-name">Node.js</span>
+        <span class="stack-version">20-alpine · Docker</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-name">Tailwind CSS</span>
+        <span class="stack-version">3.4 · dark mode</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-name">Radix UI</span>
+        <span class="stack-version">accessible primitives</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-name">NextAuth</span>
+        <span class="stack-version">4.24 · JWT sessions</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-name">Recharts</span>
+        <span class="stack-version">2.12 · burndown, gauges</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-name">Zod</span>
+        <span class="stack-version">4.3 · schema validation</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-name">Nginx</span>
+        <span class="stack-version">alpine · rate limiting</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── DEPLOY ────────────────────────────────────────── -->
+<section class="deploy-section" id="deploy">
+  <div class="container">
+    <div class="deploy-layout">
+      <div>
+        <p class="section-label">Deployment</p>
+        <h2 class="section-title">Running in<br>under a minute.</h2>
+        <p class="section-sub" style="margin-bottom: 2rem;">
+          One script handles secrets generation, database seeding,
+          and first-run setup. Updates are a single command — migrations run automatically.
+        </p>
+        <div class="deploy-steps reveal">
+          <div class="deploy-step">
+            <span class="step-num">1</span>
+            <div class="step-text">
+              <span class="step-title">Clone and run setup</span>
+              <span class="step-desc">Generates Docker secrets, prompts for org URL, creates admin account</span>
+            </div>
+          </div>
+          <div class="deploy-step">
+            <span class="step-num">2</span>
+            <div class="step-text">
+              <span class="step-title">130 practices seeded automatically</span>
+              <span class="step-desc">All CMMC Level 2 and ITAR controls pre-loaded at Not Started</span>
+            </div>
+          </div>
+          <div class="deploy-step">
+            <span class="step-num">3</span>
+            <div class="step-text">
+              <span class="step-title">Updates: git pull &amp;&amp; docker compose up -d --build</span>
+              <span class="step-desc">Migrations run automatically at startup — no manual database steps</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="terminal reveal reveal-delay-1">
+        <div class="terminal-bar">
+          <span class="dot dot-r"></span>
+          <span class="dot dot-y"></span>
+          <span class="dot dot-g"></span>
+          <span class="terminal-title">bash</span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line"><span class="t-prompt">$ </span><span class="t-cmd">git clone https://github.com/gtj105/cmmc-dashboard</span></div>
+          <div class="terminal-line"><span class="t-prompt">$ </span><span class="t-cmd">cd cmmc-dashboard</span></div>
+          <div class="terminal-line"><span class="t-prompt">$ </span><span class="t-cmd">bash scripts/deploy-prod.sh</span></div>
+          <div class="t-blank"></div>
+          <div class="terminal-line"><span class="t-ok">[OK]</span><span class="t-output">  Generated postgres secret</span></div>
+          <div class="terminal-line"><span class="t-ok">[OK]</span><span class="t-output">  Generated nextauth secret</span></div>
+          <div class="terminal-line"><span class="t-amber">[?] </span><span class="t-output">  App URL [http://localhost]: </span></div>
+          <div class="terminal-line"><span class="t-ok">[OK]</span><span class="t-output">  Starting containers...</span></div>
+          <div class="terminal-line"><span class="t-ok">[OK]</span><span class="t-output">  Migrations applied (000–007)</span></div>
+          <div class="terminal-line"><span class="t-ok">[OK]</span><span class="t-output">  Seeded 110 CMMC + 20 ITAR practices</span></div>
+          <div class="t-blank"></div>
+          <div class="terminal-line"><span class="t-amber">[?] </span><span class="t-output">  Admin email: admin@company.com</span></div>
+          <div class="terminal-line"><span class="t-ok">[OK]</span><span class="t-output">  Admin user created</span></div>
+          <div class="t-blank"></div>
+          <div class="terminal-line"><span class="t-ok">[DONE]</span><span class="t-output"> Dashboard at http://localhost</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <hr class="rule" style="margin-bottom: 2rem;">
+    <div class="footer-inner">
+      <span class="footer-brand">CMMC<span>.</span>Dashboard</span>
+      <span class="footer-note">Open source · MIT License · Self-hosted</span>
+      <div class="footer-links">
+        <a href="https://github.com/gtj105/cmmc-dashboard" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/gtj105/cmmc-dashboard/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="https://github.com/gtj105/cmmc-dashboard/blob/master/README.md" target="_blank" rel="noopener">Docs</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Hero stats animate in immediately
+  document.querySelectorAll('.hero .reveal').forEach(el => {
+    setTimeout(() => el.classList.add('visible'), 300);
+  });
+</script>
+
+</body>
+</html>
