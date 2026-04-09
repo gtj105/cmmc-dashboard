@@ -49,6 +49,23 @@ export async function middleware(req: NextRequest) {
     })
   }
 
+  // Generate per-request CSP nonce (prevents unsafe-inline requirement for scripts)
+  const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64')
+  const csp = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}'`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' https://fonts.gstatic.com",
+    "connect-src 'self'",
+    "form-action 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+  ].join('; ')
+  response.headers.set('Content-Security-Policy', csp)
+  response.headers.set('x-nonce', nonce)
+
   // Skip auth checks for public pages
   if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
     return response

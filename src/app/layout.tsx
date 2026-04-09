@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
+import { headers } from 'next/headers'
 import './globals.css'
 import SessionProviderWrapper from '@/components/SessionProviderWrapper'
 import DevEasterEgg from '@/components/DevEasterEgg'
@@ -31,11 +32,14 @@ export const metadata: Metadata = {
   description: 'CMMC Level 2 Compliance Tracking',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Retrieve nonce set by middleware for use with future <Script nonce={nonce}> tags
+  const nonce = (await headers()).get('x-nonce') ?? ''
+  void nonce // available for Script tags when needed
   return (
     <html lang="en" className="dark">
 <body className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} font-sans`}>
