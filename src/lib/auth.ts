@@ -9,7 +9,7 @@ import { audit } from '@/lib/audit'
 import { revokeToken } from '@/lib/token-revocation'
 import type { UserRole } from '@/lib/types'
 
-const DUMMY_HASH = '$2b$10$dummy.hash.for.timing.protection.placeholder.xxxxx'
+const DUMMY_HASH = '$2a$13$CjqYzfTQZwwfPtc9EfFKNupVWf1l5/ZiW3KJWB1rhy2HatgkjaJMS'
 
 // JWT maxAge — tokens are valid for 24 hours
 const JWT_MAX_AGE_SECONDS = 24 * 60 * 60

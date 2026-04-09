@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return validationError(parsed.error)
   const { email, name, password, role } = parsed.data
 
-  const passwordHash = await bcrypt.hash(password, 10)
+  const passwordHash = await bcrypt.hash(password, 13)
 
   try {
     const [created] = await sql<{ id: number; email: string; name: string; role: string; must_change_password: boolean; created_at: string }[]>`
