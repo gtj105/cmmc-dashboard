@@ -96,10 +96,18 @@ export function parsePoamPatch(body: unknown) {
 
 const USER_ROLES = ['admin', 'editor', 'viewer'] as const
 
+const PASSWORD_COMPLEXITY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\[\]{};:'",.<>?/\\|`~]).{12,128}$/
+
 export const UserCreateSchema = z.object({
   email:    z.string().email('Invalid email address').max(254),
   name:     z.string().min(1, 'Name is required').max(100),
-  password: z.string().min(12, 'Password must be at least 12 characters').max(128),
+  password: z.string()
+    .min(12, 'Password must be at least 12 characters')
+    .max(128, 'Password must be at most 128 characters')
+    .regex(
+      PASSWORD_COMPLEXITY,
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+    ),
   role:     z.enum(USER_ROLES),
 })
 
@@ -119,7 +127,13 @@ export function parseUserRolePatch(body: unknown) {
 
 export const PasswordChangeSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required').max(128),
-  newPassword:     z.string().min(12, 'New password must be at least 12 characters').max(128),
+  newPassword:     z.string()
+    .min(12, 'New password must be at least 12 characters')
+    .max(128, 'New password must be at most 128 characters')
+    .regex(
+      PASSWORD_COMPLEXITY,
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+    ),
 }).refine(d => d.currentPassword !== d.newPassword, {
   message: 'New password must be different from current password',
   path: ['newPassword'],
