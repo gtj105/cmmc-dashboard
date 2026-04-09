@@ -36,6 +36,41 @@ export async function POST(req: NextRequest) {
   const valid = await bcrypt.compare(currentPassword, user.password_hash)
   if (!valid) return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 })
 
+  // Check password history (last 5 previous hashes)
+  const HISTORY_LIMIT = 5
+  const historyRows = await sql<{ hash: string }[]>`
+    SELECT hash FROM password_history
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+    LIMIT ${HISTORY_LIMIT}
+  `
+  for (const row of historyRows) {
+    const reused = await bcrypt.compare(newPassword, row.hash)
+    if (reused) {
+      return NextResponse.json(
+        { error: 'Password was used recently. Choose a password you have not used in the last 5 changes.' },
+        { status: 400 }
+      )
+    }
+  }
+
+  // Archive current hash before overwriting
+  await sql`
+    INSERT INTO password_history (user_id, hash)
+    VALUES (${userId}, ${user.password_hash})
+  `
+  // Keep only the last HISTORY_LIMIT entries
+  await sql`
+    DELETE FROM password_history
+    WHERE user_id = ${userId}
+    AND id NOT IN (
+      SELECT id FROM password_history
+      WHERE user_id = ${userId}
+      ORDER BY created_at DESC
+      LIMIT ${HISTORY_LIMIT}
+    )
+  `
+
   const newHash = await bcrypt.hash(newPassword, 13)
   // Also clear must_change_password in case this is a first-login reset
   await sql`UPDATE users SET password_hash = ${newHash}, must_change_password = false WHERE id = ${userId}`
