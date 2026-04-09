@@ -7,6 +7,7 @@ import sql from '@/lib/db'
 import {
   buildEvidencePath,
   validateFileSize,
+  validateFileMagic,
   validateFileType,
   writeEvidenceFileAt,
 } from '@/lib/evidence'
@@ -66,6 +67,10 @@ export async function POST(
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
+    const magicError = await validateFileMagic(buffer, file.name)
+    if (magicError) {
+      return NextResponse.json({ error: magicError }, { status: 400 })
+    }
     const relPath = buildEvidencePath(params.id, file.name)
 
     // DB insert first with the real path — no sentinel needed

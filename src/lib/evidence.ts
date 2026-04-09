@@ -1,6 +1,7 @@
 import { mkdir, unlink, writeFile } from 'fs/promises'
 import path from 'path'
 import { randomUUID } from 'crypto'
+import { fileTypeFromBuffer } from 'file-type'
 
 export const EVIDENCE_ROOT = process.env.EVIDENCE_ROOT ?? '/data/evidence'
 
@@ -45,6 +46,47 @@ export function validateFileType(filename: string, mimeType: string): boolean {
 
 export function validateFileSize(size: number): boolean {
   return size <= MAX_FILE_SIZE
+}
+
+// Map of allowed extensions to their permitted magic-number MIME types.
+// OOXML formats (.docx, .xlsx) are ZIP-based so file-type reports application/zip.
+// Text formats (.csv, .txt) have no magic bytes — extension check is sufficient.
+const MAGIC_ALLOWED: Record<string, Set<string>> = {
+  '.pdf':  new Set(['application/pdf']),
+  '.png':  new Set(['image/png']),
+  '.jpg':  new Set(['image/jpeg']),
+  '.jpeg': new Set(['image/jpeg']),
+  '.gif':  new Set(['image/gif']),
+  '.docx': new Set(['application/zip']),
+  '.xlsx': new Set(['application/zip']),
+  '.csv':  new Set(),  // no magic bytes
+  '.txt':  new Set(),  // no magic bytes
+}
+
+/**
+ * Validates file content against its declared extension using magic bytes.
+ * Returns an error string if invalid, or null if OK.
+ */
+export async function validateFileMagic(
+  buffer: Buffer,
+  filename: string
+): Promise<string | null> {
+  const ext = path.extname(filename).toLowerCase()
+  const allowedMagic = MAGIC_ALLOWED[ext]
+
+  if (!allowedMagic) return 'File type not allowed'
+
+  // Text formats have no magic bytes — skip magic check
+  if (allowedMagic.size === 0) return null
+
+  const detected = await fileTypeFromBuffer(buffer)
+  if (!detected) {
+    return `Could not determine file type. Expected ${ext} content.`
+  }
+  if (!allowedMagic.has(detected.mime)) {
+    return `File content does not match its extension (detected: ${detected.mime})`
+  }
+  return null
 }
 
 /** Resolves a relative evidence path to an absolute path, or null if invalid. */
