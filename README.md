@@ -2,6 +2,8 @@
 
 Internal compliance tracking dashboard for CMMC Level 2 and ITAR overlay work.
 
+**[Live demo / docs site](https://gtj105.github.io/cmmc-dashboard)**
+
 ![Overview](docs/screenshots/overview.png)
 
 Designed for a small trusted user set — not a public-facing product. All data stays on your machine inside Docker.
@@ -31,7 +33,7 @@ Designed for a small trusted user set — not a public-facing product. All data 
 
 ```bash
 git clone https://github.com/gtj105/cmmc-dashboard.git
-cd cmmc-dashboard/dashboard
+cd cmmc-dashboard
 ```
 
 Or download the ZIP from GitHub and unzip it.
@@ -49,9 +51,9 @@ The app will be at **http://localhost** when it finishes.
 ### 4. Log in
 
 Default email: `admin@localhost`
-Password: printed by the bootstrap script at the end of setup — **save it, it won't be shown again.**
+Default password: `admin`
 
-On first login you will be redirected to `/set-password` to choose a permanent password.
+On first login you will be redirected to `/set-password` to choose a permanent password. You cannot access the dashboard until this is done.
 
 ---
 
