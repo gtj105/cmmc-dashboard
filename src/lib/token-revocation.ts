@@ -25,9 +25,13 @@ export async function revokeToken(jti: string, expiresAt: Date): Promise<void> {
 
 /** Returns true if the jti is in the revoked_tokens table (and not yet expired). */
 export async function isTokenRevoked(jti: string): Promise<boolean> {
-  await sql`DELETE FROM revoked_tokens WHERE expires_at < NOW()`
-  const [row] = await sql`SELECT 1 FROM revoked_tokens WHERE jti = ${jti}`
+  const [row] = await sql`SELECT 1 FROM revoked_tokens WHERE jti = ${jti} AND expires_at > NOW()`
   return !!row
+}
+
+/** Remove expired tokens from the revoked_tokens table. Call this from a background job or on logout. */
+export async function pruneExpiredTokens(): Promise<void> {
+  await sql`DELETE FROM revoked_tokens WHERE expires_at < NOW()`
 }
 
 /**

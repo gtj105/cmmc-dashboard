@@ -14,8 +14,7 @@ import { NextResponse } from 'next/server'
 
 /** Returns a 400 response with all Zod error messages joined. */
 export function validationError(error: z.ZodError): NextResponse {
-  const issues = (error as unknown as { issues: Array<{ path: (string | number)[]; message: string }> }).issues
-  const messages = issues.map(e => `${e.path.join('.')}: ${e.message}`).join('; ')
+  const messages = error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join('; ')
   return NextResponse.json({ error: messages }, { status: 400 })
 }
 

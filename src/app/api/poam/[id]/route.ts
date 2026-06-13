@@ -31,24 +31,23 @@ export async function PATCH(
   const authError = requireRole(session, 'editor')
   if (authError) return authError
 
-  const id = parseInt(params.id)
+  const id = parseInt(params.id, 10)
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
-  let rawBody: unknown
+  let body: unknown
   try {
-    rawBody = await req.json()
+    body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const parsed = parsePoamPatch(rawBody)
+  const parsed = parsePoamPatch(body)
   if (!parsed.success) return validationError(parsed.error)
   const data = parsed.data
 
-  const body = rawBody as Record<string, unknown>
   const updates: Record<string, unknown> = {}
   for (const key of ALLOWED_UPDATE_KEYS) {
-    if (key in body) updates[key] = data[key as keyof typeof data]
+    if (key in data) updates[key] = data[key as keyof typeof data]
   }
 
   if (Object.keys(updates).length === 0) {
@@ -108,7 +107,7 @@ export async function DELETE(
   const authError = requireRole(session, 'admin')
   if (authError) return authError
 
-  const id = parseInt(params.id)
+  const id = parseInt(params.id, 10)
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
   const [archived] = await sql`
